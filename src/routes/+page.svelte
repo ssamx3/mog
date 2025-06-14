@@ -57,18 +57,6 @@
         }
     }
 
-    async function handleClear() {
-        const confirmation = await confirm(
-            'Are you sure you want to clear?',
-            {title: 'Unsaved work will be lost', kind: 'warning'}
-        );
-
-        if (confirmation) {
-            await editorService.clearEditor();
-            currentFile = null;
-        }
-    }
-
     function showCreateDialog() {
         showNewNoteDialog = true;
         newNoteTitle = '';
@@ -173,13 +161,6 @@
             Save {currentFile ? `(${getDisplayName(currentFile)})` : ''}
         </button>
 
-        <button
-                class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                onclick={handleClear}
-                type="button"
-        >
-            Clear
-        </button>
 
 
         {#if currentFile}
