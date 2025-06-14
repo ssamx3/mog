@@ -1,1 +1,113 @@
 @import "tailwindcss";
+
+/* --- NEW: Text Selection Highlight --- */
+::selection {
+    background: #4A4458; /* The purple color from before */
+    color: #FFFFFF;     /* Use a bright color for the text itself */
+}
+.codex-editor ::selection {
+    background: #ffffff ;
+    color: #FFFFFF ;
+}
+/* Apply this to your normal input or textarea */
+input {
+    caret-color: #007aff;
+    animation: caret-smoothing 1s /* Not a real property, but illustrates the idea */
+}
+
+.codex-editor ::-moz-selection {
+    background:#ffffff ;
+    color: #FFFFFF ;
+}
+
+body {
+    background-color: #191919;
+    margin: 0;
+    padding: 0;
+}
+
+/* --- General Block & UI Colors --- */
+.ce-block {
+    color:  #D4D4D4;
+}
+
+.ce-inline-tool {
+    color:  #D4D4D4;
+}
+
+.cdx-button {
+    color:  #D4D4D4;
+}
+
+/* --- Block Selection Background --- */
+.ce-block--selected .ce-block__content {
+    background-color: #4A4458;
+}
+
+/* --- Toolbar Icon Colors --- */
+.ce-toolbar__plus,
+.ce-toolbar__settings-btn {
+    color: #D4D4D4;
+}
+
+.ce-toolbar__plus:hover,
+.ce-toolbar__settings-btn:hover {
+    background-color: rgba(212, 212, 212, 0.1);
+}
+
+
+
+
+/*
+ * --- FIXED: Typography Sizing & Styles ---
+ * Selectors are now correct (e.g., h1.ce-header instead of .ce-header h1)
+ */
+.ce-paragraph {
+    color: #D4D4D4;
+    font-size: 1rem;
+    line-height: 1.6em;
+}
+
+/* This is a general rule for any element that gets the .ce-header class */
+.ce-header {
+    color: #D4D4D4;
+    margin: 0;
+    padding: 0;
+}
+
+h1.ce-header {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+h2.ce-header {
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+h3.ce-header {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+h4.ce-header {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+h5.ce-header {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+h6.ce-header {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+    text-transform: uppercase;
+}

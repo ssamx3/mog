@@ -3,6 +3,8 @@
     import * as editorService from '$lib/editorService';
     import * as fileManager from '$lib/fileManager';
     import {confirm} from '@tauri-apps/plugin-dialog';
+    import '../app.css';
+
 
     // Define the component's props with TypeScript
     let {class: className = ''} = $props<{ class?: string }>();
@@ -45,6 +47,25 @@
         // Only write the file if save() returned data
         if (outputData) {
             await fileManager.writeFile(currentFile, outputData);
+        }
+    }
+
+    async function handleDelete(): Promise<void> {
+        if (!currentFile) {
+            console.warn("No file is currently open");
+            return;
+        }
+
+        const confirmed = await confirm('Are you sure you want to delete this note?', {
+            title: 'Delete Note',
+            type: 'warning'
+        });
+
+        if (confirmed) {
+            await fileManager.deleteFile(currentFile);
+            await editorService.clearEditor();
+            currentFile = null;
+            await loadNotesList();
         }
     }
 
@@ -112,22 +133,28 @@
         }
     }
 
+    // Sanitize input to only allow alphanumeric characters and spaces
+    function sanitizeInput(input: string): string {
+        return input.replace(/[^a-zA-Z0-9\s]/g, '');
+    }
+
     // Helper function to get display name (remove .json extension)
     function getDisplayName(fileName: string): string {
         return fileName.replace('.json', '');
     }
 </script>
 
-<div class="flex h-screen">
+
+<div class="flex h-screen bg-[#191919]">
     <!-- Notes List Sidebar -->
-    <div class="w-64 bg-gray-100 p-4 overflow-y-auto">
+    <div class="bg-[#202020] p-4 w-64 overflow-y-auto">
 
 
         <div class="space-y-2">
             {#each notesList as note}
                 <button
-                        class="w-full p-3 bg-white rounded shadow text-left hover:bg-blue-50 transition-colors
-                           {currentFile === note ? 'bg-blue-100 border-l-4 border-blue-500' : ''}"
+                        class="w-full p-3 text-[#9b9b9b] rounded shadow text-left hover:bg-[#2c2c2c] transition-colors
+                           {currentFile === note ? 'bg-[#2c2c2c]' : ''}"
                         onclick={() => openNote(note)}
                         onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
                         type="button"
@@ -136,7 +163,7 @@
                 </button>
             {/each}
             <button
-                    class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+                    class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-white text-sm transition-colors"
                     onclick={showCreateDialog}
             >
                 New
@@ -146,14 +173,14 @@
     </div>
 
 
-    <div class="flex-1 flex flex-col">
+    <div class="flex flex-col flex-1">
         <!-- Editor Container -->
         <div bg-gray-50 bind:this={editorEl} border-t class="flex-1 p-4 {className}" flex gap-2 p-4 style="visibility: {currentFile ? 'visible' : 'hidden'}"></div>
 
     <div class="
         ">
         <button
-                class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:bg-gray-300"
+                class="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 px-4 py-2 rounded text-white transition-colors"
                 disabled={!currentFile}
                 onclick={handleSave}
                 type="button"
@@ -161,12 +188,17 @@
             Save {currentFile ? `(${getDisplayName(currentFile)})` : ''}
         </button>
 
-
-
         {#if currentFile}
-                <span class="px-4 py-2 bg-blue-100 text-blue-800 rounded">
-                    Editing: {getDisplayName(currentFile)}
-                </span>
+            <button
+                class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-white transition-colors"
+                onclick={handleDelete}
+                type="button"
+            >
+                Delete File
+            </button>
+            <span class="bg-blue-100 px-4 py-2 rounded text-blue-800">
+                Editing: {getDisplayName(currentFile)}
+            </span>
         {/if}
     </div>
 </div>
@@ -174,22 +206,23 @@
 
 <!-- New Note Dialog -->
 {#if showNewNoteDialog}
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
-            <h3 class="text-lg font-semibold mb-4">Create New Note</h3>
+    <div class="z-50 fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
+        <div class="bg-white shadow-xl p-6 rounded-lg w-96">
+            <h3 class="mb-4 font-semibold text-lg">Create New Note</h3>
 
             <input
                     type="text"
                     placeholder="Enter note title..."
-                    class="w-full p-3 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="mb-4 p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
                     bind:value={newNoteTitle}
+                    oninput={(e) => newNoteTitle = sanitizeInput(e.currentTarget.value)}
                     onkeydown={handleNewNoteKeyDown}
                     autofocus
             />
 
-            <div class="flex gap-2 justify-end">
+            <div class="flex justify-end gap-2">
                 <button
-                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+                        class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded text-gray-700 transition-colors"
                         onclick={hideCreateDialog}
                         type="button"
                 >
@@ -197,7 +230,7 @@
                 </button>
 
                 <button
-                        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:bg-gray-300"
+                        class="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 px-4 py-2 rounded text-white transition-colors"
                         onclick={createNewNote}
                         disabled={!newNoteTitle.trim()}
                         type="button"

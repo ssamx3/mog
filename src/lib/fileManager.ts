@@ -5,7 +5,8 @@ import {
     readTextFile,
     readDir, // <--- Import readDir
     BaseDirectory,
-    type FileEntry // <--- Import the type for file entries
+    type FileEntry, // <--- Import the type for file entries
+    remove // Fix: change removeFile to remove
 } from '@tauri-apps/plugin-fs';
 import type { OutputData } from '@editorjs/editorjs';
 
@@ -64,5 +65,19 @@ export async function readFile(fileName:string): Promise<OutputData | null> {
     } catch (error) {
         console.error('Error reading or parsing file:', error);
         return null;
+    }
+}
+
+/**
+ * Deletes a file from the 'mogNotes' folder on the desktop.
+ * @param fileName - The name of the file to delete.
+ */
+export async function deleteFile(fileName: string): Promise<void> {
+    try {
+        const path = `${FOLDER_NAME}/${fileName}`;
+        await remove(path, FILE_OPTIONS); // Fix: change removeFile to remove
+        console.log(`Successfully deleted Desktop/${path}`);
+    } catch (error) {
+        console.error('Error deleting file:', error);
     }
 }
