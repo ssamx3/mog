@@ -1,12 +1,11 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import {onMount} from "svelte";
     import * as editorService from '$lib/editorService';
     import * as fileManager from '$lib/fileManager';
-    import type { OutputData } from "@editorjs/editorjs";
-    import { confirm } from '@tauri-apps/plugin-dialog';
+    import {confirm} from '@tauri-apps/plugin-dialog';
 
     // Define the component's props with TypeScript
-    let { class: className = '' } = $props<{ class?: string }>();
+    let {class: className = ''} = $props<{ class?: string }>();
 
     // This will hold the reference to the <div> element
     let editorEl: HTMLElement;
@@ -61,10 +60,10 @@
     async function handleClear() {
         const confirmation = await confirm(
             'Are you sure you want to clear?',
-            { title: 'Unsaved work will be lost', kind: 'warning' }
+            {title: 'Unsaved work will be lost', kind: 'warning'}
         );
 
-        if(confirmation) {
+        if (confirmation) {
             await editorService.clearEditor();
             currentFile = null;
         }
@@ -158,39 +157,38 @@
 
     </div>
 
-    <!-- Editor Area -->
+
     <div class="flex-1 flex flex-col">
         <!-- Editor Container -->
-        <div bind:this={editorEl} class="flex-1 p-4 {className}"></div>
+        <div bg-gray-50 bind:this={editorEl} border-t class="flex-1 p-4 {className}" flex gap-2 p-4 style="visibility: {currentFile ? 'visible' : 'hidden'}"></div>
+
+    <div class="
+        ">
+        <button
+                class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:bg-gray-300"
+                disabled={!currentFile}
+                onclick={handleSave}
+                type="button"
+        >
+            Save {currentFile ? `(${getDisplayName(currentFile)})` : ''}
+        </button>
+
+        <button
+                class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                onclick={handleClear}
+                type="button"
+        >
+            Clear
+        </button>
 
 
-        <!-- Controls -->
-        <div class="p-4 bg-gray-50 border-t flex gap-2">
-            <button
-                    class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:bg-gray-300"
-                    onclick={handleSave}
-                    disabled={!currentFile}
-                    type="button"
-            >
-                Save {currentFile ? `(${getDisplayName(currentFile)})` : ''}
-            </button>
-
-            <button
-                    class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                    onclick={handleClear}
-                    type="button"
-            >
-                Clear
-            </button>
-
-
-            {#if currentFile}
+        {#if currentFile}
                 <span class="px-4 py-2 bg-blue-100 text-blue-800 rounded">
                     Editing: {getDisplayName(currentFile)}
                 </span>
-            {/if}
-        </div>
+        {/if}
     </div>
+</div>
 </div>
 
 <!-- New Note Dialog -->
