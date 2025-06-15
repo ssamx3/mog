@@ -26,6 +26,13 @@ body {
     padding: 0;
 }
 
+:root {
+    --toast-font-size: 100px;       /* Default is 14px */
+    --toast-padding: 10px 14px;    /* Default is 16px */
+    --toast-border-radius: 8px;    /* Default is 8px, you can make it smaller if you like */
+    --toast-gap: 12px;             /* Default is 16px, reduces space between icon and text */
+}
+
 /* --- General Block & UI Colors --- */
 .ce-block {
     color:  #D4D4D4;

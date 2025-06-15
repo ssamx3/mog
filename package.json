@@ -13,8 +13,13 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@editorjs/checklist": "^1.6.0",
     "@editorjs/editorjs": "^2.30.8",
     "@editorjs/header": "^2.8.8",
+    "@editorjs/list": "^2.0.8",
+    "@editorjs/marker": "^1.4.0",
+    "@editorjs/nested-list": "^1.4.3",
+    "@editorjs/quote": "^2.7.6",
     "@tailwindcss/vite": "^4.1.10",
     "@tauri-apps/api": "^2.5.0",
     "@tauri-apps/plugin-dialog": "^2.2.2",
@@ -23,6 +28,8 @@
     "@tauri-apps/plugin-process": "^2.2.1",
     "bits-ui": "^2.7.0",
     "editorjs-undo": "^2.0.28",
+    "lucide-svelte": "^0.515.0",
+    "svelte-sonner": "^1.0.5",
     "tailwindcss": "^4.1.10"
   },
   "devDependencies": {
