@@ -2,9 +2,10 @@
     import {onMount} from "svelte";
     import * as editorService from '$lib/editorService';
     import * as fileManager from '$lib/fileManager';
-    import {confirm} from '@tauri-apps/plugin-dialog';
+    import { setupAppMenu, updateMenuItemStates } from '$lib/menu';
+    import { getCurrentWindow } from '@tauri-apps/api/window';
+    import { confirm } from '@tauri-apps/plugin-dialog';
     import '../app.css';
-
 
     // Define the component's props with TypeScript
     let {class: className = ''} = $props<{ class?: string }>();
@@ -17,6 +18,7 @@
     let notesList = $state<string[]>([]);
     let showNewNoteDialog = $state(false);
     let newNoteTitle = $state('');
+    let isDeleting = $state(false);
 
     onMount(async () => {
         // Initialize the editor once the component is mounted to the DOM
@@ -24,10 +26,39 @@
             await editorService.initializeEditor(editorEl);
             // Load the list of notes
             await loadNotesList();
+
+            // Setup the menu system
+            await setupAppMenu();
+
+            // Listen for menu actions
+            const appWindow = getCurrentWindow();
+            await appWindow.listen('menu-action', (event) => {
+                const payload = event.payload as { action: string };
+                handleMenuAction(payload.action);
+            });
+
+            // Update menu item states initially
+            await updateMenuItemStates(false);
+
         } catch (error) {
-            console.error("Failed to initialize EditorJS:", error);
+            console.error("Failed to initialize application:", error);
         }
     });
+
+    // Handle menu actions
+    function handleMenuAction(action: string) {
+        switch (action) {
+            case 'new':
+                showCreateDialog();
+                break;
+            case 'save':
+                handleSave();
+                break;
+            case 'delete':
+                handleDelete();
+                break;
+        }
+    }
 
     async function loadNotesList(): Promise<void> {
         try {
@@ -51,23 +82,33 @@
     }
 
     async function handleDelete(): Promise<void> {
-        if (!currentFile) {
-            console.warn("No file is currently open");
+        // Prevent multiple delete operations
+        if (!currentFile || isDeleting) {
             return;
         }
 
-        const confirmed = await confirm('Are you sure you want to delete this note?', {
-            title: 'Delete Note',
-            type: 'warning'
-        });
+        try {
+            isDeleting = true;
 
-        if (confirmed) {
-            await fileManager.deleteFile(currentFile);
-            await editorService.clearEditor();
-            currentFile = null;
-            await loadNotesList();
+            const confirmed = await confirm('Are you sure you want to delete this note?', {
+                title: 'Delete Note',
+                type: 'warning'
+            });
+
+            if (confirmed) {
+                await fileManager.deleteFile(currentFile);
+                await editorService.clearEditor();
+                currentFile = null;
+                await loadNotesList();
+                await emitFileStatus();
+            }
+        } catch (error) {
+            console.error("Error during delete operation:", error);
+        } finally {
+            isDeleting = false;
         }
     }
+
 
     async function openNote(fileName: string): Promise<void> {
         const editorData = await fileManager.readFile(fileName);
@@ -75,6 +116,8 @@
         if (editorData) {
             await editorService.render(editorData);
             currentFile = fileName;
+            // Update menu items when file is opened
+            await updateMenuItemStates(true);
         }
     }
 
@@ -113,6 +156,8 @@
             await fileManager.writeFile(fileName, outputData);
             // Refresh the notes list
             await loadNotesList();
+            // Update menu items when new file is created
+            await updateMenuItemStates(true);
         }
 
         hideCreateDialog();
@@ -144,16 +189,13 @@
     }
 </script>
 
-
 <div class="flex h-screen bg-[#191919]">
     <!-- Notes List Sidebar -->
     <div class="bg-[#202020] p-4 w-64 overflow-y-auto">
-
-
         <div class="space-y-2">
             {#each notesList as note}
                 <button
-                        class="w-full p-3 text-[#9b9b9b] rounded shadow text-left hover:bg-[#2c2c2c] transition-colors
+                        class="w-full p-3 font-serif truncate text-ellipsis text-[#9b9b9b] rounded shadow text-left hover:bg-[#2c2c2c] transition-colors
                            {currentFile === note ? 'bg-[#2c2c2c]' : ''}"
                         onclick={() => openNote(note)}
                         onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
@@ -162,46 +204,15 @@
                     {getDisplayName(note)}
                 </button>
             {/each}
-            <button
-                    class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-white text-sm transition-colors"
-                    onclick={showCreateDialog}
-            >
-                New
-            </button>
         </div>
-
     </div>
-
 
     <div class="flex flex-col flex-1">
         <!-- Editor Container -->
         <div bg-gray-50 bind:this={editorEl} border-t class="flex-1 p-4 {className}" flex gap-2 p-4 style="visibility: {currentFile ? 'visible' : 'hidden'}"></div>
 
-    <div class="
-        ">
-        <button
-                class="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 px-4 py-2 rounded text-white transition-colors"
-                disabled={!currentFile}
-                onclick={handleSave}
-                type="button"
-        >
-            Save {currentFile ? `(${getDisplayName(currentFile)})` : ''}
-        </button>
 
-        {#if currentFile}
-            <button
-                class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-white transition-colors"
-                onclick={handleDelete}
-                type="button"
-            >
-                Delete File
-            </button>
-            <span class="bg-blue-100 px-4 py-2 rounded text-blue-800">
-                Editing: {getDisplayName(currentFile)}
-            </span>
-        {/if}
     </div>
-</div>
 </div>
 
 <!-- New Note Dialog -->
@@ -237,8 +248,6 @@
                 >
                     Create
                 </button>
-
-
             </div>
         </div>
     </div>

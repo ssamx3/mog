@@ -29,6 +29,7 @@ body {
 /* --- General Block & UI Colors --- */
 .ce-block {
     color:  #D4D4D4;
+    font-family: serif;
 }
 
 .ce-inline-tool {
@@ -73,6 +74,7 @@ body {
     color: #D4D4D4;
     margin: 0;
     padding: 0;
+    font-family: serif;
 }
 
 h1.ce-header {

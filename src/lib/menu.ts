@@ -1,59 +1,80 @@
 import { Menu, Submenu, MenuItem } from '@tauri-apps/api/menu';
-import { appWindow } from '@tauri-apps/api/window';
-import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { exit } from '@tauri-apps/plugin-process';
 
 export async function setupAppMenu() {
-    // On macOS, the first submenu is always the "App" menu.
-    // We can create it ourselves, or Tauri will do it automatically.
-    // For simplicity, we'll focus on the "File" menu.
+    const appWindow = getCurrentWindow();
 
+    // Create App menu items (mog submenu)
+    const quitItem = await MenuItem.new({
+        text: 'Quit mog',
+        id: 'quit-app',
+        accelerator: 'CmdOrCtrl+Q',
+        action: async () => {
+            await exit(0);
+        },
+    });
+
+    // Create App submenu
+    const appSubmenu = await Submenu.new({
+        text: 'Mog',
+        items: [quitItem],
+    });
+
+    // Create File menu items
+    const newNoteItem = await MenuItem.new({
+        text: 'New Note',
+        id: 'new-note',
+        accelerator: 'CmdOrCtrl+T',
+        action: () => {
+            appWindow.emit('menu-action', { action: 'new' });
+        },
+    });
+
+    const saveItem = await MenuItem.new({
+        text: 'Save Note',
+        id: 'save-note',
+        accelerator: 'CmdOrCtrl+S',
+        action: () => {
+            appWindow.emit('menu-action', { action: 'save' });
+        },
+    });
+
+    const deleteItem = await MenuItem.new({
+        text: 'Delete Note',
+        id: 'delete-note',
+        accelerator: 'CmdOrCtrl+L',
+        action: () => {
+            appWindow.emit('menu-action', { action: 'delete' });
+        },
+    });
+
+    // Create File submenu
     const fileSubmenu = await Submenu.new({
-        text: 'File',
-        items: [
-            await MenuItem.new({
-                text: 'New Note',
-                // Use CmdOrCtrl for cross-platform compatibility (macOS/Windows/Linux)
-                accelerator: 'CmdOrCtrl+T',
-                action: () => {
-                    // Emit a custom event that the Svelte component will listen for
-                    appWindow.emit('menu-action', { action: 'new' });
-                },
-            }),
-            await MenuItem.new({
-                text: 'Save',
-                id: 'save-note', // Give it an ID to update it later
-                accelerator: 'CmdOrCtrl+S',
-                action: () => {
-                    appWindow.emit('menu-action', { action: 'save' });
-                },
-            }),
-            await MenuItem.new({
-                text: 'Delete Note',
-                id: 'delete-note', // Give it an ID
-                accelerator: 'CmdOrCtrl+L', // Your custom shortcut
-                action: () => {
-                    appWindow.emit('menu-action', { action: 'delete' });
-                },
-            }),
-        ],
+        text: 'file',
+        items: [newNoteItem, saveItem, deleteItem],
     });
 
+    // Create the main menu
     const appMenu = await Menu.new({
-        items: [fileSubmenu],
+        items: [appSubmenu, fileSubmenu],
     });
 
-    // Set this as the main application menu
+    // Set as the application menu
     await appMenu.setAsAppMenu();
 
-    // --- Pro Tip: Dynamic Disabling/Enabling ---
-    // Listen for state changes from the Svelte component
-    await listen('file-status-changed', async (event) => {
-        const payload = event.payload as { hasOpenFile: boolean };
-        const saveItem = await appMenu.get('save-note');
-        const deleteItem = await appMenu.get('delete-note');
+    return { appMenu, saveItem, deleteItem };
+}
 
-        // Enable or disable items based on whether a file is open
-        if (saveItem) await saveItem.setEnabled(payload.hasOpenFile);
-        if (deleteItem) await deleteItem.setEnabled(payload.hasOpenFile);
-    });
+export async function updateMenuItemStates(hasOpenFile: boolean) {
+    try {
+        const appMenu = await Menu.default();
+        const saveItem = await appMenu?.get('save-note');
+        const deleteItem = await appMenu?.get('delete-note');
+
+        if (saveItem) await saveItem.setEnabled(hasOpenFile);
+        if (deleteItem) await deleteItem.setEnabled(hasOpenFile);
+    } catch (error) {
+        console.error('Failed to update menu items:', error);
+    }
 }
