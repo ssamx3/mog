@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onDestroy, onMount } from 'svelte';
+    import { onMount, onDestroy } from "svelte";
     import * as editorService from '$lib/editorService';
     import * as fileManager from '$lib/fileManager';
     import { setupAppMenu, updateMenuItemStates } from '$lib/menu';
@@ -7,7 +7,7 @@
     import { confirm } from '@tauri-apps/plugin-dialog';
     import '../app.css';
     import { Toaster, toast } from 'svelte-sonner';
-    import { Plus, StickyNote } from 'lucide-svelte';
+    import { StickyNote, Plus } from 'lucide-svelte';
 
     let editorEl: HTMLElement;
     let isSidebarVisible = $state(true);
@@ -31,7 +31,7 @@
             });
             await updateMenuItemStates(false);
         } catch (error) {
-            console.error('Failed to initialize application:', error);
+            console.error("Failed to initialize application:", error);
         }
     });
 
@@ -63,10 +63,9 @@
     async function loadNotesList(): Promise<void> {
         try {
             notesList = await fileManager.listNotes();
-        } catch (error)
-        {
-            console.error('Failed to load notes list:', error);
-            toast.error('Failed to load notes.');
+        } catch (error) {
+            console.error("Failed to load notes list:", error);
+            toast.error("Failed to load notes.");
         }
     }
 
@@ -83,12 +82,9 @@
         if (!currentFile || isDeleting) return;
         try {
             isDeleting = true;
-            const confirmed = await confirm(
-                `Are you sure you want to delete '${getDisplayName(currentFile)}'?`,
-                {
-                    title: 'Delete Note'
-                }
-            );
+            const confirmed = await confirm(`Are you sure you want to delete '${getDisplayName(currentFile)}'?`, {
+                title: 'Delete Note'
+            });
 
             if (confirmed) {
                 await fileManager.deleteFile(currentFile);
@@ -99,8 +95,8 @@
                 toast.info(`'${deletedNoteName}' deleted`);
             }
         } catch (error) {
-            console.error('Error during delete operation:', error);
-            toast.error('Failed to delete note.');
+            console.error("Error during delete operation:", error);
+            toast.error("Failed to delete note.");
         } finally {
             isDeleting = false;
         }
@@ -165,29 +161,19 @@
 
 <Toaster position="top-right" richColors duration={1500} />
 <div class="flex bg-[#191919] h-screen overflow-hidden">
-    <!-- Sidebar: The classes here have been updated -->
     <div
-            class="flex flex-col bg-[#202020] p-2 w-64 transition-all duration-300 ease-in-out shrink-0"
-            class:-ml-64={!isSidebarVisible}
+        class="flex flex-col bg-[#202020] p-2 w-64 transition-transform duration-300 ease-in-out shrink-0"
+        class:translate-x-[-100%]={!isSidebarVisible}
     >
-        <div class="p-2">
-            <button
-                    class="flex justify-center items-center gap-2 hover:bg-[#2c2c2c] p-2 rounded w-full text-[#b0b0b0] transition-colors"
-                    onclick={showCreateDialog}
-            >
-                <Plus size={16} />
-                New Note
-            </button>
-        </div>
 
         <div class="flex-1 space-y-1 pr-1 overflow-y-auto">
             {#each notesList as note}
                 <button
-                        class="flex items-center gap-2 hover:bg-[#2c2c2c] p-2 rounded w-full font-serif text-[#9b9b9b] text-left truncate text-ellipsis transition-colors"
-                        class:bg-[#2c2c2c]={currentFile === note}
-                        onclick={() => openNote(note)}
-                        onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
-                        type="button"
+                    class="flex items-center gap-2 hover:bg-[#2c2c2c] p-2 rounded w-full font-serif text-[#9b9b9b] text-left truncate text-ellipsis transition-colors"
+                    class:bg-[#2c2c2c]={currentFile === note}
+                    onclick={() => openNote(note)}
+                    onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
+                    type="button"
                 >
                     <StickyNote size={16} class="shrink-0" />
                     <span class="truncate">{getDisplayName(note)}</span>
@@ -196,18 +182,9 @@
         </div>
     </div>
 
-    <!-- Main Content Area -->
     <div class="flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out">
-        <div
-                class="flex-1 p-4 overflow-y-auto flex justify-center items-start"
-                style="visibility: {currentFile ? 'visible' : 'hidden'}"
-        >
-            <div
-                    class="w-full h-full transition-all duration-300 ease-in-out"
-                    class:max-w-4xl={isSidebarVisible}
-                    class:max-w-6xl={!isSidebarVisible}
-                    bind:this={editorEl}
-            ></div>
+        <div class="flex-1 p-4 overflow-y-auto" style="visibility: {currentFile ? 'visible' : 'hidden'}">
+            <div class="mx-auto w-full max-w-4xl h-full" bind:this={editorEl}></div>
         </div>
     </div>
 </div>
@@ -217,25 +194,25 @@
         <div class="bg-white shadow-xl p-6 rounded-lg w-96">
             <h3 class="mb-4 font-semibold text-lg">Create New Note</h3>
             <input
-                    type="text"
-                    placeholder="Enter note title..."
-                    class="mb-4 p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                    bind:value={newNoteTitle}
-                    oninput={(e) => (newNoteTitle = sanitizeInput(e.currentTarget.value))}
-                    onkeydown={handleNewNoteKeyDown}
-                    autofocus
+                type="text"
+                placeholder="Enter note title..."
+                class="mb-4 p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                bind:value={newNoteTitle}
+                oninput={(e) => newNoteTitle = sanitizeInput(e.currentTarget.value)}
+                onkeydown={handleNewNoteKeyDown}
+                autofocus
             />
             <div class="flex justify-end gap-2">
                 <button
-                        class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded text-gray-700 transition-colors"
-                        onclick={hideCreateDialog}
+                    class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded text-gray-700 transition-colors"
+                    onclick={hideCreateDialog}
                 >
                     Cancel
                 </button>
                 <button
-                        class="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 px-4 py-2 rounded text-white transition-colors"
-                        onclick={createNewNote}
-                        disabled={!newNoteTitle.trim()}
+                    class="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 px-4 py-2 rounded text-white transition-colors"
+                    onclick={createNewNote}
+                    disabled={!newNoteTitle.trim()}
                 >
                     Create
                 </button>
