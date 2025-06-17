@@ -15,7 +15,9 @@
         "title": "mog",
         "width": 800,
         "height": 600,
-        "maximized": true
+        "maximized": true,
+        "titleBarStyle": "Transparent",
+        "decorations": true
 
       }
     ],

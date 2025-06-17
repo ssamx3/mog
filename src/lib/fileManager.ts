@@ -25,7 +25,7 @@ export async function listNotes(): Promise<string[]> {
         // Filter for files that end with .json and map to just their names
         const noteFiles = entries
             .filter(entry => entry.name?.endsWith('.json') && entry.children === undefined) // Ensure it's a file, not a directory
-            .map(entry => entry.name!); // The '!' asserts that name is not null here
+            .map(entry => entry.name!);
 
         return noteFiles;
     } catch (error) {
@@ -35,6 +35,28 @@ export async function listNotes(): Promise<string[]> {
         return [];
     }
 }
+
+
+export async function listAll(): Promise<string[]> {
+    try {
+        // Read all entries in the 'mogNotes' directory
+        const entries: FileEntry[] = await readDir(FOLDER_NAME, FILE_OPTIONS);
+
+        // Filter for files that end with .json and map to just their names
+        const noteFiles = entries
+            .map(entry => entry.name!);
+
+        console.log(noteFiles);
+        return noteFiles;
+    } catch (error) {
+        // This can happen if the 'mogNotes' directory doesn't exist yet.
+        // It's safe to return an empty array in that case.
+        console.warn("Could not read notes directory (it may not exist yet):", error);
+        return [];
+    }
+}
+
+
 
 /**
  * Writes EditorJS OutputData to a specified file inside the 'mogNotes' folder on the desktop.

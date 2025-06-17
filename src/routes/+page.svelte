@@ -1,13 +1,17 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import {onDestroy, onMount} from "svelte";
+    import {fade, scale} from 'svelte/transition';
+    import {quintOut} from 'svelte/easing';
     import * as editorService from '$lib/editorService';
     import * as fileManager from '$lib/fileManager';
-    import { setupAppMenu, updateMenuItemStates } from '$lib/menu';
-    import { getCurrentWindow } from '@tauri-apps/api/window';
-    import { confirm } from '@tauri-apps/plugin-dialog';
+    import {setupAppMenu, updateMenuItemStates} from '$lib/menu';
+    import {getCurrentWindow} from '@tauri-apps/api/window';
+    import {confirm} from '@tauri-apps/plugin-dialog';
     import '../app.css';
-    import { Toaster, toast } from 'svelte-sonner';
-    import { StickyNote, Plus } from 'lucide-svelte';
+    import {toast, Toaster} from 'svelte-sonner';
+    import {StickyNote} from 'lucide-svelte';
+
+    let editorEL: HTMLElement;
 
     let editorEl: HTMLElement;
     let isSidebarVisible = $state(true);
@@ -19,6 +23,10 @@
     let unlistenMenu: (() => void) | null = null;
 
     onMount(async () => {
+
+
+        fileManager.listAll()
+
         try {
             await editorService.initializeEditor(editorEl);
             await loadNotesList();
@@ -159,62 +167,69 @@
     }
 </script>
 
-<Toaster position="top-right" richColors duration={1500} />
-<div class="flex bg-[#191919] h-screen overflow-hidden">
-    <div
-        class="flex flex-col bg-[#202020] p-2 w-64 transition-transform duration-300 ease-in-out shrink-0"
-        class:translate-x-[-100%]={!isSidebarVisible}
-    >
+<Toaster duration={1500} position="top-right" richColors/>
 
-        <div class="flex-1 space-y-1 pr-1 overflow-y-auto">
-            {#each notesList as note}
-                <button
-                    class="flex items-center gap-2 hover:bg-[#2c2c2c] p-2 rounded w-full font-serif text-[#9b9b9b] text-left truncate text-ellipsis transition-colors"
-                    class:bg-[#2c2c2c]={currentFile === note}
-                    onclick={() => openNote(note)}
-                    onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
-                    type="button"
-                >
-                    <StickyNote size={16} class="shrink-0" />
-                    <span class="truncate">{getDisplayName(note)}</span>
-                </button>
-            {/each}
+<div class="flex bg-[#191919] h-screen overflow-hidden">
+    <div class="fixed top-4 bottom-4 left-4 w-60 rounded-lg py-4 sidebar transition-all duration-300 ease-in-out-quad"
+         class:translate-x-[-110%]={!isSidebarVisible}>
+        <div class="h-full  bg-gradient-to-b from-[#202020] to-[#222222]  rounded-lg p-2">
+            <div class="h-full overflow-y-auto scrollbar-hide">
+                <section>
+                    <ul class="box flex-column flex-wrap scrollbar-hide">
+                        {#each notesList as note}
+                            <button
+                                    class="flex items-center gap-2 hover:bg-[#2c2c2c] p-2 rounded w-full font-serif text-[#9b9b9b] text-left truncate text-ellipsis transition-colors"
+                                    class:bg-[#2c2c2c]={currentFile === note}
+                                    onclick={() => openNote(note)}
+                                    onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
+                                    type="button"
+                            >
+                                <StickyNote size={16} class="shrink-0"/>
+                                <span class="truncate">{getDisplayName(note)}</span>
+                            </button>
+                        {/each}
+                    </ul>
+                </section>
+            </div>
         </div>
     </div>
 
     <div class="flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out">
         <div class="flex-1 p-4 overflow-y-auto" style="visibility: {currentFile ? 'visible' : 'hidden'}">
-            <div class="mx-auto w-full max-w-4xl h-full" bind:this={editorEl}></div>
+            <div bind:this={editorEl} class="mx-auto w-full max-w-4xl h-full"></div>
         </div>
     </div>
 </div>
 
 {#if showNewNoteDialog}
-    <div class="z-50 fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
-        <div class="bg-white shadow-xl p-6 rounded-lg w-96">
+    <div class="z-50 fixed inset-0 flex justify-center items-center bg-black/80 transition" in:fade={{ duration: 200 }}
+         out:fade={{ duration: 150 }}>
+        <div class="bg-white shadow-xl p-6 rounded-lg w-96"
+             in:scale={{ duration: 300, start: 0.95, opacity: 0.5, easing: quintOut }}
+             out:scale={{ duration: 200, start: 0.95, opacity: 0 }}>
             <h3 class="mb-4 font-semibold text-lg">Create New Note</h3>
             <input
-                type="text"
-                placeholder="Enter note title..."
-                class="mb-4 p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                bind:value={newNoteTitle}
-                oninput={(e) => newNoteTitle = sanitizeInput(e.currentTarget.value)}
-                onkeydown={handleNewNoteKeyDown}
-                autofocus
+                    type="text"
+                    placeholder="Enter note title..."
+                    class="mb-4 p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-violet-300 w-full"
+                    bind:value={newNoteTitle}
+                    oninput={(e) => newNoteTitle = sanitizeInput(e.currentTarget.value)}
+                    onkeydown={handleNewNoteKeyDown}
+                    autofocus
             />
             <div class="flex justify-end gap-2">
                 <button
-                    class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded text-gray-700 transition-colors"
-                    onclick={hideCreateDialog}
+                        class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded text-gray-700 transition-colors"
+                        onclick={hideCreateDialog}
                 >
                     Cancel
                 </button>
                 <button
-                    class="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 px-4 py-2 rounded text-white transition-colors"
-                    onclick={createNewNote}
-                    disabled={!newNoteTitle.trim()}
+                        class="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 px-4 py-2 rounded text-white transition-colors"
+                        onclick={createNewNote}
+                        disabled={!newNoteTitle.trim()}
                 >
-                    Create
+                    create note
                 </button>
             </div>
         </div>
