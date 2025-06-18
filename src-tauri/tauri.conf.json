@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "mog",
-  "version": "0.1.0",
-  "identifier": "com.mog.app",
+  "version": "0.2.2",
+  "identifier": "com.mog.editor",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",

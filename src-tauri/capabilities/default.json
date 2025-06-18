@@ -16,7 +16,7 @@
     "fs:allow-exists",
     "fs:allow-watch",
     "fs:read-dirs",
-    "fs:scope-desktop",
+    "fs:scope-appdata",
     {
       "identifier": "fs:scope",
       "allow": [

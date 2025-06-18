@@ -1,56 +1,53 @@
-// src/lib/fileManager.ts
-
 import {
     writeTextFile,
     readTextFile,
-    readDir, // <--- Import readDir
+    readDir,
     BaseDirectory,
-    type FileEntry, // <--- Import the type for file entries
-    remove // Fix: change removeFile to remove
+    type FileEntry,
+    remove,
+    mkdir
 } from '@tauri-apps/plugin-fs';
 import type { OutputData } from '@editorjs/editorjs';
 
-const FILE_OPTIONS = { baseDir: BaseDirectory.Desktop };
+const FILE_OPTIONS = { baseDir: BaseDirectory.AppData };
 const FOLDER_NAME = 'mogNotes';
 
-/**
- * Lists all .json files in the 'mogNotes' directory on the desktop.
- * @returns A Promise resolving to an array of file names.
- */
+export async function checkFolderExists(): Promise<void> {
+    try {
+        await readDir(FOLDER_NAME, FILE_OPTIONS);
+    } catch(error) {
+        try  {
+            await mkdir(FOLDER_NAME, { baseDir: BaseDirectory.AppData, recursive: true});
+            console.log('created!')
+        } catch(creationError) {
+            console.log('oops!', creationError)
+        }
+    }
+}
+
 export async function listNotes(): Promise<string[]> {
     try {
-        // Read all entries in the 'mogNotes' directory
         const entries: FileEntry[] = await readDir(FOLDER_NAME, FILE_OPTIONS);
-
-        // Filter for files that end with .json and map to just their names
         const noteFiles = entries
-            .filter(entry => entry.name?.endsWith('.json') && entry.children === undefined) // Ensure it's a file, not a directory
+            .filter(entry => entry.name?.endsWith('.json') && entry.children === undefined)
             .map(entry => entry.name!);
 
         return noteFiles;
     } catch (error) {
-        // This can happen if the 'mogNotes' directory doesn't exist yet.
-        // It's safe to return an empty array in that case.
-        console.warn("Could not read notes directory (it may not exist yet):", error);
-        return [];
     }
 }
 
 
 export async function listAll(): Promise<string[]> {
     try {
-        // Read all entries in the 'mogNotes' directory
         const entries: FileEntry[] = await readDir(FOLDER_NAME, FILE_OPTIONS);
-
-        // Filter for files that end with .json and map to just their names
         const noteFiles = entries
             .map(entry => entry.name!);
 
         console.log(noteFiles);
         return noteFiles;
     } catch (error) {
-        // This can happen if the 'mogNotes' directory doesn't exist yet.
-        // It's safe to return an empty array in that case.
+        console.log(noteFiles);
         console.warn("Could not read notes directory (it may not exist yet):", error);
         return [];
     }
@@ -58,11 +55,6 @@ export async function listAll(): Promise<string[]> {
 
 
 
-/**
- * Writes EditorJS OutputData to a specified file inside the 'mogNotes' folder on the desktop.
- * @param fileName - The name of the file (e.g., 'document.json').
- * @param data - The OutputData object to write.
- */
 export async function writeFile(fileName: string, data: OutputData): Promise<void> {
     try {
         const path = `${FOLDER_NAME}/${fileName}`;
@@ -73,11 +65,6 @@ export async function writeFile(fileName: string, data: OutputData): Promise<voi
     }
 }
 
-/**
- * Reads and parses a JSON file from the 'mogNotes' folder on the desktop.
- * @param fileName - The name of the file to read.
- * @returns A Promise resolving to the parsed OutputData, or null if an error occurs.
- */
 export async function readFile(fileName:string): Promise<OutputData | null> {
     try {
         const path = `${FOLDER_NAME}/${fileName}`;
@@ -90,14 +77,10 @@ export async function readFile(fileName:string): Promise<OutputData | null> {
     }
 }
 
-/**
- * Deletes a file from the 'mogNotes' folder on the desktop.
- * @param fileName - The name of the file to delete.
- */
 export async function deleteFile(fileName: string): Promise<void> {
     try {
         const path = `${FOLDER_NAME}/${fileName}`;
-        await remove(path, FILE_OPTIONS); // Fix: change removeFile to remove
+        await remove(path, FILE_OPTIONS);
         console.log(`Successfully deleted Desktop/${path}`);
     } catch (error) {
         console.error('Error deleting file:', error);
