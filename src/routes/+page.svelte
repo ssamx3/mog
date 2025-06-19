@@ -1,6 +1,6 @@
 <script lang="ts">
     import {onDestroy, onMount} from "svelte";
-    import { invoke } from '@tauri-apps/api/core';
+    import {invoke} from '@tauri-apps/api/core';
     import {fade, scale} from 'svelte/transition';
     import {quintOut} from 'svelte/easing';
     import * as editorService from '$lib/editorService';
@@ -177,8 +177,8 @@
 
 <div class="flex bg-[#191919] h-screen overflow-hidden pt-5">
     <div class="flex-shrink-0 pl-3 top-4 bottom-4 left-4 w-60 rounded-xl py-4 sidebar transition-all duration-200 ease-in-out"
-         class:w-60={isSidebarVisible}
-         class:w-19={!isSidebarVisible}>
+         class:w-19={!isSidebarVisible}
+         class:w-60={isSidebarVisible}>
         <div class="h-full  bg-gradient-to-b from-[#202020] to-[#170d1f]  rounded-xl p-3 relative flex flex-col">
             <div class="flex-1 overflow-y-auto scrollbar-hide">
                 <section>
@@ -194,12 +194,12 @@
                                     type="button"
                             >
                                 {#if currentFile === note}
-                                <FilePenLine size={16} class="shrink-0"/>
+                                    <FilePenLine size={16} class="shrink-0"/>
                                 {/if}
 
                                 {#if currentFile !== note}
                                     <File size={16} class="shrink-0"/>
-                                    {/if}
+                                {/if}
                                 <span class="truncate">{getDisplayName(note)}</span>
                             </button>
                         {/each}
@@ -210,11 +210,11 @@
 
             </div>
             <button
-                    class="flex items-center gap-2 bottom-3 flex items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
-                    type="button"
-                    onclick={()=>showCreateDialog()}>
+                    class="flex items-center gap-2 bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
+                    onclick={()=>showCreateDialog()}
+                    type="button">
 
-                <Plus size={20} class="shrink-0"/>
+                <Plus class="shrink-0" size={20}/>
                 <span class="truncate">add</span>
             </button>
         </div>
@@ -222,22 +222,25 @@
 
     <div class="flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out">
         <div class="relative flex-1">
-            <div class="absolute inset-0 p-4 flex items-center justify-center overflow-y-auto transition-opacity duration-200"
-                    class:opacity-0={!currentFile}
-                    class:pointer-events-none={!currentFile}
-                    class:opacity-100={currentFile}
-                    class:pointer-events-auto={currentFile}>
+            <div class="absolute inset-0 p-4 flex flex-col  overflow-y-auto transition-opacity duration-200"
+                 class:opacity-0={!currentFile}
+                 class:opacity-100={currentFile}
+                 class:pointer-events-auto={currentFile}
+                 class:pointer-events-none={!currentFile}>
+                {#if currentFile}
+                <h1 class="font-[vr] font-bold text-2xl pl-23 text-[#d4d4d4]">{currentFile.replace('.json', '')}</h1>
+                    {/if}
                 <div bind:this={editorEl} class="mx-auto pl-8 w-full h-full"></div>
             </div>
             <div
                     class="absolute inset-0 p-4 flex items-center justify-center overflow-y-auto transition-opacity duration-200"
                     class:opacity-0={currentFile}
-                    class:pointer-events-none={currentFile}
                     class:opacity-100={!currentFile}
                     class:pointer-events-auto={!currentFile}
+                    class:pointer-events-none={currentFile}
             >
                 <div class="mx-auto pl-8 w-full h-full flex flex-col items-center justify-center text-center">
-                    <Cat size={50} class="text-[#9b9b9b]"/>
+                    <Cat class="text-[#9b9b9b]" size={50}/>
                     <h1 class="font-[vr] text-[#d4d4d4]">Autosave is disabled!</h1>
                     <h1 class="font-[vr] text-[#9b9b9b]">CMD + S to save</h1>
                     <h1 class="font-[vr] text-[#9b9b9b]">CMD + N for a new file</h1>
