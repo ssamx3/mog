@@ -10,7 +10,7 @@
     import {confirm} from '@tauri-apps/plugin-dialog';
     import '../app.css';
     import {toast, Toaster} from 'svelte-sonner';
-    import {StickyNote, Plus} from 'lucide-svelte';
+    import {File, Plus, FilePenLine, Cat} from 'lucide-svelte';
 
     let editorEL: HTMLElement;
 
@@ -173,9 +173,9 @@
     }
 </script>
 
-<Toaster duration={1500} position="top-right" richColors/>
+<Toaster duration={1000} position="top-right" richColors/>
 
-<div class="flex bg-[#191919] h-screen overflow-hidden">
+<div class="flex bg-[#191919] h-screen overflow-hidden pt-5">
     <div class="flex-shrink-0 pl-3 top-4 bottom-4 left-4 w-60 rounded-xl py-4 sidebar transition-all duration-200 ease-in-out"
          class:w-60={isSidebarVisible}
          class:w-19={!isSidebarVisible}>
@@ -185,14 +185,21 @@
                     <ul class="box flex-column flex-wrap scrollbar-hide">
                         {#each notesList as note}
                             <button
-                                    class="flex items-center gap-2 hover:bg-[#2c2c2c]  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-lg w-full font-serif text-[#9b9b9b] text-left truncate text-ellipsis "
-                                    class:bg-[#2c2c2c]={currentFile === note}
-                                    class:font-bold={currentFile === note}
+                                    class="flex items-center gap-2 hover:bg-[#2c2c2c]  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
+
+                                    class:font-black={currentFile === note}
+                                    class:scale-102={currentFile === note}
                                     onclick={() => openNote(note)}
                                     onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
                                     type="button"
                             >
-                                <StickyNote size={16} class="shrink-0"/>
+                                {#if currentFile === note}
+                                <FilePenLine size={16} class="shrink-0"/>
+                                {/if}
+
+                                {#if currentFile !== note}
+                                    <File size={16} class="shrink-0"/>
+                                    {/if}
                                 <span class="truncate">{getDisplayName(note)}</span>
                             </button>
                         {/each}
@@ -203,7 +210,7 @@
 
             </div>
             <button
-                    class="flex items-center gap-2 bottom-3 flex items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-lg w-full font-serif hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
+                    class="flex items-center gap-2 bottom-3 flex items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
                     type="button"
                     onclick={()=>showCreateDialog()}>
 
@@ -214,10 +221,35 @@
     </div>
 
     <div class="flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out">
-        <div class="flex-1 p-4 overflow-y-auto" style="visibility: {currentFile ? 'visible' : 'hidden'}">
-            <div bind:this={editorEl} class="mx-auto  w-full  h-full"></div>
+        <div class="relative flex-1">
+            <div class="absolute inset-0 p-4 flex items-center justify-center overflow-y-auto transition-opacity duration-200"
+                    class:opacity-0={!currentFile}
+                    class:pointer-events-none={!currentFile}
+                    class:opacity-100={currentFile}
+                    class:pointer-events-auto={currentFile}>
+                <div bind:this={editorEl} class="mx-auto pl-8 w-full h-full"></div>
+            </div>
+            <div
+                    class="absolute inset-0 p-4 flex items-center justify-center overflow-y-auto transition-opacity duration-200"
+                    class:opacity-0={currentFile}
+                    class:pointer-events-none={currentFile}
+                    class:opacity-100={!currentFile}
+                    class:pointer-events-auto={!currentFile}
+            >
+                <div class="mx-auto pl-8 w-full h-full flex flex-col items-center justify-center text-center">
+                    <Cat size={50} class="text-[#9b9b9b]"/>
+                    <h1 class="font-[vr] text-[#d4d4d4]">Autosave is disabled!</h1>
+                    <h1 class="font-[vr] text-[#9b9b9b]">CMD + S to save</h1>
+                    <h1 class="font-[vr] text-[#9b9b9b]">CMD + N for a new file</h1>
+                    <h1 class="font-[vr] text-[#9b9b9b]">CMD + L to delete a file</h1>
+                    <h1 class="font-[vr] text-[#9b9b9b]">CMD + . to toggle sidebar</h1>
+                </div>
+            </div>
+
         </div>
     </div>
+
+
 </div>
 
 {#if showNewNoteDialog}
@@ -226,11 +258,11 @@
         <div class="bg-[#2c2c2c] shadow-xl p-6 rounded-2xl w-96"
              in:scale={{ duration: 300, start: 0.95, opacity: 0.5, easing: quintOut }}
              out:scale={{ duration: 200, start: 0.95, opacity: 0 }}>
-            <h3 class="mb-4 font-semibold font-serif text-[#ffffff] text-lg">Create New Note</h3>
+            <h3 class="mb-4 font-semibold font-[vr] text-[#ffffff] text-lg">Create New Note</h3>
             <input
                     type="text"
                     placeholder="Enter note title..."
-                    class="mb-4 p-3 text-[#ffffff] font-serif rounded focus:outline-none focus:ring-2 focus:ring-violet-300 w-full"
+                    class="mb-4 p-3 text-[#ffffff] font-[vr] rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-300 w-full"
                     bind:value={newNoteTitle}
                     oninput={(e) => newNoteTitle = sanitizeInput(e.currentTarget.value)}
                     onkeydown={handleNewNoteKeyDown}
@@ -238,17 +270,17 @@
             />
             <div class="flex justify-end gap-2">
                 <button
-                        class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded text-gray-400 transition-colors"
+                        class="bg-gray-200 hover:bg-gray-300 font-[vr] px-4 py-2 rounded-xl text-gray-400 transition-colors"
                         onclick={hideCreateDialog}
                 >
                     Cancel
                 </button>
                 <button
-                        class="bg-violet-300 hover:bg-violet-400 disabled:bg-gray-300 px-4 py-2 rounded text-white transition-colors"
+                        class="bg-violet-300 hover:bg-violet-400 font-[vr] disabled:bg-gray-300 px-4 py-2 rounded-xl text-white transition-colors"
                         onclick={createNewNote}
                         disabled={!newNoteTitle.trim()}
                 >
-                    create note
+                    Create note
                 </button>
             </div>
         </div>

@@ -15,6 +15,7 @@
   "dependencies": {
     "@editorjs/checklist": "^1.6.0",
     "@editorjs/editorjs": "^2.30.8",
+    "@editorjs/embed": "^2.7.6",
     "@editorjs/header": "^2.8.8",
     "@editorjs/list": "^2.0.8",
     "@editorjs/marker": "^1.4.0",
