@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import 'tailwind-scrollbar-hide/v4';
 
+@font-face {
+    font-family: 'vr';
+    src: url('/src/assets/VarelaRound-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
 
 ::selection {
     background: #4A4458;
@@ -28,7 +35,7 @@ body {
 
 .ce-block {
     color:  #D4D4D4;
-    font-family: serif;
+    font-family: vr;
 }
 
 .ce-inline-tool {
@@ -76,7 +83,7 @@ body {
     color: #D4D4D4;
     margin: 0;
     padding: 0;
-    font-family: serif;
+    font-family: vr;
 }
 
 h1.ce-header {
@@ -115,3 +122,30 @@ h6.ce-header {
     line-height: 1.5;
     text-transform: uppercase;
 }
+
+
+.cdx-quote__text {
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
+    border-left: 0.5rem solid #9b9b9b;
+    background-color: rgba(155, 155, 155,0.2);
+    font-family: serif;
+    min-height: auto !important;
+    height: auto;
+    width: auto;
+    padding-bottom: 0;
+
+}
+
+
+
+.cdx-quote__caption {
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
+    border-left: none;
+    font-style: italic;
+    font-family: serif;
+}
+
