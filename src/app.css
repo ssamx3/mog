@@ -64,6 +64,7 @@ body {
     background-color: rgba(212, 212, 212, 0.1);
 }
 
+.ce-block__content, .ce-toolbar__content { max-width:calc(100% - 120px) !important; } .cdx-block { max-width: 100% !important; }
 
 
 

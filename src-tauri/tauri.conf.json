@@ -15,8 +15,10 @@
         "title": "mog",
         "width": 800,
         "height": 600,
+        "visible": false,
+        "backgroundColor": "#191919",
         "maximized": true,
-        "titleBarStyle": "Transparent",
+        "titleBarStyle": "Visible",
         "decorations": true
 
       }

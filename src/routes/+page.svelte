@@ -1,5 +1,6 @@
 <script lang="ts">
     import {onDestroy, onMount} from "svelte";
+    import { invoke } from '@tauri-apps/api/core';
     import {fade, scale} from 'svelte/transition';
     import {quintOut} from 'svelte/easing';
     import * as editorService from '$lib/editorService';
@@ -9,7 +10,7 @@
     import {confirm} from '@tauri-apps/plugin-dialog';
     import '../app.css';
     import {toast, Toaster} from 'svelte-sonner';
-    import {StickyNote} from 'lucide-svelte';
+    import {StickyNote, Plus} from 'lucide-svelte';
 
     let editorEL: HTMLElement;
 
@@ -23,10 +24,6 @@
     let unlistenMenu: (() => void) | null = null;
 
     onMount(async () => {
-        fileManager.checkFolderExists()
-
-
-        fileManager.listAll()
 
         try {
             await editorService.initializeEditor(editorEl);
@@ -39,9 +36,16 @@
                 handleMenuAction(payload.action);
             });
             await updateMenuItemStates(false);
+            await invoke('show_window');
         } catch (error) {
             console.error("Failed to initialize application:", error);
+            await invoke('show_window');
         }
+
+        fileManager.checkFolderExists()
+        fileManager.listAll()
+
+
     });
 
     onDestroy(() => {
@@ -172,10 +176,11 @@
 <Toaster duration={1500} position="top-right" richColors/>
 
 <div class="flex bg-[#191919] h-screen overflow-hidden">
-    <div class="fixed top-4 bottom-4 left-4 w-60 rounded-xl py-4 sidebar transition-all duration-300 ease-[cubic-bezier(0.68,-0.6,0.32,1.6)]"
-         class:translate-x-[-110%]={!isSidebarVisible}>
-        <div class="h-full  bg-gradient-to-b from-[#202020] to-[#170d1f]  rounded-xl p-3">
-            <div class="h-full overflow-y-auto scrollbar-hide">
+    <div class="flex-shrink-0 pl-3 top-4 bottom-4 left-4 w-60 rounded-xl py-4 sidebar transition-all duration-200 ease-in-out"
+         class:w-60={isSidebarVisible}
+         class:w-19={!isSidebarVisible}>
+        <div class="h-full  bg-gradient-to-b from-[#202020] to-[#170d1f]  rounded-xl p-3 relative flex flex-col">
+            <div class="flex-1 overflow-y-auto scrollbar-hide">
                 <section>
                     <ul class="box flex-column flex-wrap scrollbar-hide">
                         {#each notesList as note}
@@ -191,15 +196,26 @@
                                 <span class="truncate">{getDisplayName(note)}</span>
                             </button>
                         {/each}
+
                     </ul>
+
                 </section>
+
             </div>
+            <button
+                    class="flex items-center gap-2 bottom-3 flex items-center gap-2 hover:bg-[#2c2c2c]  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-lg w-full font-serif text-[#9b9b9b] text-left truncate text-ellipsis transition-colors"
+                    type="button"
+                    onclick={()=>showCreateDialog()}>
+
+                <Plus size={20} class="shrink-0"/>
+                <span class="truncate">add</span>
+            </button>
         </div>
     </div>
 
     <div class="flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out">
         <div class="flex-1 p-4 overflow-y-auto" style="visibility: {currentFile ? 'visible' : 'hidden'}">
-            <div bind:this={editorEl} class="mx-auto w-full max-w-4xl h-full"></div>
+            <div bind:this={editorEl} class="mx-auto  w-full  h-full"></div>
         </div>
     </div>
 </div>
