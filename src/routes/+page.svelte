@@ -185,7 +185,7 @@
                     <ul class="box flex-column flex-wrap scrollbar-hide">
                         {#each notesList as note}
                             <button
-                                    class="flex items-center gap-2 hover:bg-[#2c2c2c]  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-lg w-full font-serif text-[#9b9b9b] text-left truncate text-ellipsis transition-colors"
+                                    class="flex items-center gap-2 hover:bg-[#2c2c2c]  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-lg w-full font-serif text-[#9b9b9b] text-left truncate text-ellipsis "
                                     class:bg-[#2c2c2c]={currentFile === note}
                                     class:font-bold={currentFile === note}
                                     onclick={() => openNote(note)}
@@ -203,7 +203,7 @@
 
             </div>
             <button
-                    class="flex items-center gap-2 bottom-3 flex items-center gap-2 hover:bg-[#2c2c2c]  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-lg w-full font-serif text-[#9b9b9b] text-left truncate text-ellipsis transition-colors"
+                    class="flex items-center gap-2 bottom-3 flex items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-lg w-full font-serif hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
                     type="button"
                     onclick={()=>showCreateDialog()}>
 
