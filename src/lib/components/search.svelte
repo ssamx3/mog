@@ -1,5 +1,4 @@
 <script lang="ts">
-
     import {fade, scale} from 'svelte/transition';
     import * as fileManager from '$lib/fileManager';
     import {quintOut} from "svelte/easing";
@@ -7,11 +6,19 @@
     import {File, FilePenLine} from "lucide-svelte";
     import * as editorService from "$lib/editorService";
     import {toast} from "svelte-sonner";
+
     let searchField = $state('');
     let searchList = $derived(performSearch(searchField));
+    let selectedIndex = $state(0);
 
     let { showSearchDialog = $bindable(), currentFile = $bindable(), notesList = $bindable() } = $props()
 
+    // Reset selected index when search results change
+    $effect(() => {
+        if (searchList.length > 0) {
+            selectedIndex = 0;
+        }
+    });
 
     function performSearch(searchTerm: string) {
         if (!searchTerm) return [];
@@ -28,6 +35,7 @@
     function hideSearch() {
         showSearchDialog = false;
         searchField = '';
+        selectedIndex = 0;
     }
 
     async function openNote(fileName: string): Promise<void> {
@@ -40,7 +48,30 @@
     }
 
     function handleSearchKeydown(event: KeyboardEvent) {
-        if (event.key === 'Escape') hideSearch();
+        if (event.key === 'Escape') {
+            hideSearch();
+            return;
+        }
+
+        if (searchList.length === 0) return;
+
+        switch (event.key) {
+            case 'ArrowDown':
+                event.preventDefault();
+                selectedIndex = (selectedIndex + 1) % searchList.length;
+                break;
+            case 'ArrowUp':
+                event.preventDefault();
+                selectedIndex = selectedIndex === 0 ? searchList.length - 1 : selectedIndex - 1;
+                break;
+            case 'Enter':
+                event.preventDefault();
+                if (searchList[selectedIndex]) {
+                    openNote(searchList[selectedIndex]);
+                    hideSearch();
+                }
+                break;
+        }
     }
 
     function getDisplayName(fileName: string): string {
@@ -68,11 +99,12 @@
                 </div>
             {:else if searchList.length > 0}
                 <ul class="box flex-column flex-wrap scrollbar-hide max-h-60 overflow-y-auto">
-                    {#each searchList as note}
+                    {#each searchList as note, index}
                         <button
                                 class="flex items-center gap-2 hover:bg-[#3c3c3c] transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis"
                                 class:font-black={currentFile === note}
                                 class:scale-102={currentFile === note}
+                                class:bg-[#3c3c3c]={selectedIndex === index}
                                 onclick={() => {openNote(note); hideSearch();}}
                                 onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
                                 type="button"

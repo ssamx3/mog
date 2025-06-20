@@ -26,6 +26,7 @@
     "dialog:default",
     "dialog:default",
     "process:default",
-    "process:allow-exit"
+    "process:allow-exit",
+    "store:default"
   ]
 }
