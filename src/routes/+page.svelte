@@ -9,8 +9,9 @@
     import {getCurrentWindow} from '@tauri-apps/api/window';
     import {confirm} from '@tauri-apps/plugin-dialog';
     import '../app.css';
+    import SearchConsole from "$lib/components/search.svelte";
     import {toast, Toaster} from 'svelte-sonner';
-    import {File, Plus, FilePenLine, Cat} from 'lucide-svelte';
+    import {File, Plus, FilePenLine, Cat, Search} from 'lucide-svelte';
 
     let editorEL: HTMLElement;
 
@@ -19,6 +20,7 @@
     let currentFile = $state<string | null>(null);
     let notesList = $state<string[]>([]);
     let showNewNoteDialog = $state(false);
+    let showSearchDialog = $state(false);
     let newNoteTitle = $state('');
     let isDeleting = $state(false);
     let unlistenMenu: (() => void) | null = null;
@@ -42,8 +44,7 @@
             await invoke('show_window');
         }
 
-        fileManager.checkFolderExists()
-        fileManager.listAll()
+        await fileManager.checkFolderExists()
 
 
     });
@@ -67,11 +68,16 @@
             case 'delete':
                 handleDelete();
                 break;
+
+            case 'search':
+                showSearch();
+                break;
             case 'toggle-sidebar':
                 isSidebarVisible = !isSidebarVisible;
                 break;
         }
     }
+
 
     async function loadNotesList(): Promise<void> {
         try {
@@ -90,6 +96,16 @@
             toast.success(`'${getDisplayName(currentFile)}' saved`);
         }
     }
+
+    async function handleSecretSave(): Promise<void> {
+        if (!currentFile) return;
+        const outputData = await editorService.save();
+        if (outputData) {
+            await fileManager.writeFile(currentFile, outputData);
+        }
+    }
+
+
 
     async function handleDelete(): Promise<void> {
         if (!currentFile || isDeleting) return;
@@ -146,6 +162,13 @@
         newNoteTitle = '';
     }
 
+    function showSearch() {
+
+        showSearchDialog = true;
+    }
+
+
+
     function hideCreateDialog() {
         showNewNoteDialog = false;
         newNoteTitle = '';
@@ -164,6 +187,7 @@
         else if (event.key === 'Escape') hideCreateDialog();
     }
 
+
     function sanitizeInput(input: string): string {
         return input.replace(/[^a-zA-Z0-9\s-]/g, '');
     }
@@ -171,6 +195,8 @@
     function getDisplayName(fileName: string): string {
         return fileName.replace('.json', '');
     }
+
+
 </script>
 
 <Toaster duration={1000} position="top-right" richColors/>
@@ -189,7 +215,7 @@
 
                                     class:font-black={currentFile === note}
                                     class:scale-102={currentFile === note}
-                                    onclick={() => openNote(note)}
+                                    onclick={() => {openNote(note); handleSecretSave()}}
                                     onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
                                     type="button"
                             >
@@ -209,6 +235,14 @@
                 </section>
 
             </div>
+            <button
+                    class="flex items-center gap-2 bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
+                    onclick={()=>showSearch()}
+                    type="button">
+
+                <Search class="shrink-0" size={20}/>
+                <span class="truncate">search</span>
+            </button>
             <button
                     class="flex items-center gap-2 bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
                     onclick={()=>showCreateDialog()}
@@ -288,4 +322,8 @@
             </div>
         </div>
     </div>
+{/if}
+
+{#if showSearchDialog}
+    <SearchConsole bind:showSearchDialog={showSearchDialog} bind:currentFile={currentFile} bind:notesList={notesList}></SearchConsole>
 {/if}

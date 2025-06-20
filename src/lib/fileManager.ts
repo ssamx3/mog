@@ -1,7 +1,9 @@
+// @ts-ignore
 import {
     writeTextFile,
     readTextFile,
     readDir,
+    rename,
     BaseDirectory,
     type FileEntry,
     remove,
@@ -38,6 +40,7 @@ export async function listNotes(): Promise<string[]> {
 }
 
 
+/*
 export async function listAll(): Promise<string[]> {
     try {
         const entries: FileEntry[] = await readDir(FOLDER_NAME, FILE_OPTIONS);
@@ -52,7 +55,7 @@ export async function listAll(): Promise<string[]> {
         return [];
     }
 }
-
+*/
 
 
 export async function writeFile(fileName: string, data: OutputData): Promise<void> {
@@ -84,5 +87,18 @@ export async function deleteFile(fileName: string): Promise<void> {
         console.log(`Successfully deleted Desktop/${path}`);
     } catch (error) {
         console.error('Error deleting file:', error);
+    }
+}
+
+export async function renameFile(currentFileName: string, newFileName: string): Promise<void> {
+    try {
+        const oldPath = `${FOLDER_NAME}/${currentFileName}`;
+        const newPath = `${FOLDER_NAME}/${newFileName}`;
+
+        await rename(oldPath, newPath);
+        console.log(`Successfully renamed "${currentFileName}" to "${newFileName}"`);
+    } catch (error) {
+        console.error('Error renaming file:', error);
+        throw error;
     }
 }
