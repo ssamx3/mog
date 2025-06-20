@@ -1,5 +1,6 @@
 <script lang="ts">
     import {onDestroy, onMount} from "svelte";
+    import { load } from '@tauri-apps/plugin-store';
     import {invoke} from '@tauri-apps/api/core';
     import {fade, scale} from 'svelte/transition';
     import {quintOut} from 'svelte/easing';
@@ -13,6 +14,7 @@
     import {toast, Toaster} from 'svelte-sonner';
     import {File, Plus, FilePenLine, Cat, Search} from 'lucide-svelte';
 
+
     let editorEL: HTMLElement;
 
     let editorEl: HTMLElement;
@@ -21,11 +23,14 @@
     let notesList = $state<string[]>([]);
     let showNewNoteDialog = $state(false);
     let showSearchDialog = $state(false);
+    let showRenameDialog = $state(false);
     let newNoteTitle = $state('');
+    let newFileTitle = $state('');
     let isDeleting = $state(false);
     let unlistenMenu: (() => void) | null = null;
 
     onMount(async () => {
+
 
         try {
             await editorService.initializeEditor(editorEl);
@@ -45,6 +50,13 @@
         }
 
         await fileManager.checkFolderExists()
+        const store = await load('store.json', { autoSave: false });
+        const val = await store.get<{ value: number }>('doneOnboarding');
+        if (val != 1) {
+            showOnboarding();
+            await store.set('doneOnboarding', 1);
+        }
+
 
 
     });
@@ -57,6 +69,16 @@
         updateMenuItemStates(!!currentFile);
     });
 
+    function showOnboarding() {
+        toast.info('Welcome to Mog!<br>Use CMD + N to create a new note.<br>Use CMD + S to save your note.<br>Use CMD + L to delete a note.<br>Use CMD + . to toggle sidebar.', {
+            duration: 10000,
+            position: 'top-right',
+            html: true
+        })
+    }
+
+    
+
     function handleMenuAction(action: string) {
         switch (action) {
             case 'new':
@@ -67,6 +89,10 @@
                 break;
             case 'delete':
                 handleDelete();
+                break;
+            case 'rename':
+                if (!currentFile) return;
+                showReDialog();
                 break;
 
             case 'search':
@@ -105,7 +131,19 @@
         }
     }
 
-
+    async function handleRename(): Promise<void> {
+        if (!currentFile) return;
+        if (notesList.some(file => file.toUpperCase() === newFileTitle.trim().concat('.json').toUpperCase())){
+            newFileTitle = '';
+            toast.error('This name is already in use!');
+            return;
+        }
+        await fileManager.renameFileByCopy(currentFile.trim(), newFileTitle.trim().concat('.json'));
+        await loadNotesList();
+        currentFile = newFileTitle.trim().concat('.json');
+        hideReDialog();
+        toast.info(`'${getDisplayName(currentFile)}' renamed`);
+    }
 
     async function handleDelete(): Promise<void> {
         if (!currentFile || isDeleting) return;
@@ -162,6 +200,15 @@
         newNoteTitle = '';
     }
 
+    function showReDialog() {
+        showRenameDialog = true;
+        newFileTitle = '';
+    }
+    function hideReDialog() {
+        showRenameDialog = false;
+        newFileTitle = '';
+    }
+
     function showSearch() {
 
         showSearchDialog = true;
@@ -184,7 +231,12 @@
 
     function handleNewNoteKeyDown(event: KeyboardEvent) {
         if (event.key === 'Enter') createNewNote();
-        else if (event.key === 'Escape') hideCreateDialog();
+        else if (event.key === 'Escape') hideReDialog();
+    }
+
+    function handleRenameKeyDown(event: KeyboardEvent) {
+        if (event.key === 'Enter') handleRename();
+        else if (event.key === 'Escape') hideReDialog();
     }
 
 
@@ -275,11 +327,12 @@
             >
                 <div class="mx-auto pl-8 w-full h-full flex flex-col items-center justify-center text-center">
                     <Cat class="text-[#9b9b9b]" size={50}/>
-                    <h1 class="font-[vr] text-[#d4d4d4]">Autosave is disabled!</h1>
+                    <h1 class="font-[vr] text-[#d4d4d4]">Autosave is disabled (switching to other notes will save your current note)</h1>
                     <h1 class="font-[vr] text-[#9b9b9b]">CMD + S to save</h1>
                     <h1 class="font-[vr] text-[#9b9b9b]">CMD + N for a new file</h1>
                     <h1 class="font-[vr] text-[#9b9b9b]">CMD + L to delete a file</h1>
                     <h1 class="font-[vr] text-[#9b9b9b]">CMD + . to toggle sidebar</h1>
+                    <h1 class="font-[vr] text-[#9b9b9b]">CMD + K to search</h1>
                 </div>
             </div>
 
@@ -323,6 +376,42 @@
         </div>
     </div>
 {/if}
+
+{#if showRenameDialog}
+    <div class="z-50 fixed inset-0 flex justify-center items-center bg-black/80 transition" in:fade={{ duration: 200 }}
+         out:fade={{ duration: 150 }}>
+        <div class="bg-[#2c2c2c] shadow-xl p-6 rounded-2xl w-96"
+             in:scale={{ duration: 300, start: 0.95, opacity: 0.5, easing: quintOut }}
+             out:scale={{ duration: 200, start: 0.95, opacity: 0 }}>
+            <h3 class="mb-4 font-semibold font-[vr] text-[#ffffff] text-lg">Rename note</h3>
+            <input
+                    type="text"
+                    placeholder="Enter note title..."
+                    class="mb-4 p-3 text-[#ffffff] font-[vr] rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-300 w-full"
+                    bind:value={newFileTitle}
+                    oninput={(e) => newFileTitle = sanitizeInput(e.currentTarget.value)}
+                    onkeydown={handleRenameKeyDown}
+                    autofocus
+            />
+            <div class="flex justify-end gap-2">
+                <button
+                        class="bg-gray-200 hover:bg-gray-300 font-[vr] px-4 py-2 rounded-xl text-gray-400 transition-colors"
+                        onclick={hideReDialog}
+                >
+                    Cancel
+                </button>
+                <button
+                        class="bg-violet-300 hover:bg-violet-400 font-[vr] disabled:bg-gray-300 px-4 py-2 rounded-xl text-white transition-colors"
+                        onclick={handleRename}
+                        disabled={!newFileTitle.trim()}
+                >
+                    Rename
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
+
 
 {#if showSearchDialog}
     <SearchConsole bind:showSearchDialog={showSearchDialog} bind:currentFile={currentFile} bind:notesList={notesList}></SearchConsole>

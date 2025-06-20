@@ -36,6 +36,8 @@ export async function listNotes(): Promise<string[]> {
 
         return noteFiles;
     } catch (error) {
+        console.warn("Could not read notes directory (it may not exist yet):", error);
+        return [];
     }
 }
 
@@ -84,7 +86,7 @@ export async function deleteFile(fileName: string): Promise<void> {
     try {
         const path = `${FOLDER_NAME}/${fileName}`;
         await remove(path, FILE_OPTIONS);
-        console.log(`Successfully deleted Desktop/${path}`);
+        console.log(`Successfully deleted AppData/${path}`);
     } catch (error) {
         console.error('Error deleting file:', error);
     }
@@ -95,10 +97,29 @@ export async function renameFile(currentFileName: string, newFileName: string): 
         const oldPath = `${FOLDER_NAME}/${currentFileName}`;
         const newPath = `${FOLDER_NAME}/${newFileName}`;
 
-        await rename(oldPath, newPath);
+        await rename(oldPath, newPath, FILE_OPTIONS);
         console.log(`Successfully renamed "${currentFileName}" to "${newFileName}"`);
     } catch (error) {
-        console.error('Error renaming file:', error);
+        console.error('Error renaming file "${currentFileName}" "${newFileName}"' , error);
+        throw error;
+    }
+}
+
+export async function renameFileByCopy(currentFileName: string, newFileName: string): Promise<void> {
+    const oldPath = `${FOLDER_NAME}/${currentFileName}`;
+    const newPath = `${FOLDER_NAME}/${newFileName}`;
+
+    try {
+        const content = await readTextFile(oldPath, FILE_OPTIONS);
+
+        await writeTextFile(newPath, content, FILE_OPTIONS);
+
+        await deleteFile(currentFileName);
+
+        console.log(`Successfully renamed (by copy) "${currentFileName}" to "${newFileName}"`);
+
+    } catch (error) {
+        console.error(`Error during rename-by-copy for "${currentFileName}"`, error);
         throw error;
     }
 }
