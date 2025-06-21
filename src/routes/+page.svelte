@@ -11,8 +11,9 @@
     import {confirm} from '@tauri-apps/plugin-dialog';
     import '../app.css';
     import SearchConsole from "$lib/components/search.svelte";
+    import Baka from "$lib/components/flurb.svelte";
     import {toast, Toaster} from 'svelte-sonner';
-    import {File, Plus, FilePenLine, Cat, Search} from 'lucide-svelte';
+    import {File, Plus, FilePenLine, Cat, Search, Baby} from 'lucide-svelte';
 
 
     let editorEL: HTMLElement;
@@ -411,7 +412,6 @@
         </div>
     </div>
 {/if}
-
 
 {#if showSearchDialog}
     <SearchConsole bind:showSearchDialog={showSearchDialog} bind:currentFile={currentFile} bind:notesList={notesList}></SearchConsole>
