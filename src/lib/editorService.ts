@@ -5,6 +5,9 @@ import Checklist from '@editorjs/checklist';
 import Quote from '@editorjs/quote';
 import Marker from '@editorjs/marker';
 import Embed from '@editorjs/embed';
+import AudioPlayer from 'editorjs-audio-player';
+import Table from '@editorjs/table'
+import DragDrop from "editorjs-drag-drop";
 
 let editor: EditorJS | null = null;
 
@@ -23,6 +26,18 @@ export async function initializeEditor(holder: HTMLElement): Promise<EditorJS> {
                 inlineToolbar: true
             },
 
+
+            table: {
+                class: Table,
+                inlineToolbar: true,
+                config: {
+                    rows: 2,
+                    cols: 3,
+                    maxRows: 5,
+                    maxCols: 5,
+                },
+            },
+
             embed: {
                 class: Embed,
                 inlineToolbar: true
@@ -31,6 +46,10 @@ export async function initializeEditor(holder: HTMLElement): Promise<EditorJS> {
 
             checklist: {
                 class: Checklist,
+                inlineToolbar: true
+            },
+            audioPlayer: {
+                class: AudioPlayer,
                 inlineToolbar: true
             },
 

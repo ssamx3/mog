@@ -137,6 +137,16 @@ h6.ce-header {
     padding-bottom: 0;
 
 }
+.ce-popover__container {
+    background-color: #191919;
+    font-family: vr;
+    border-color: #2c2c2c;
+
+}
+
+.ce-popover-item {
+    color: #D4D4D4;
+}
 
 
 

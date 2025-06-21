@@ -2,7 +2,7 @@
     import {onDestroy, onMount} from "svelte";
     import { load } from '@tauri-apps/plugin-store';
     import {invoke} from '@tauri-apps/api/core';
-    import {fade, scale} from 'svelte/transition';
+    import {fade, scale, blur} from 'svelte/transition';
     import {quintOut} from 'svelte/easing';
     import * as editorService from '$lib/editorService';
     import * as fileManager from '$lib/fileManager';
@@ -70,7 +70,7 @@
     });
 
     function showOnboarding() {
-        toast.info('Welcome to Mog!<br>Use CMD + N to create a new note.<br>Use CMD + S to save your note.<br>Use CMD + L to delete a note.<br>Use CMD + . to toggle sidebar.', {
+        toast.info('Welcome to Mog!', {
             duration: 10000,
             position: 'top-right',
             html: true
@@ -308,7 +308,7 @@
 
     <div class="flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out">
         <div class="relative flex-1">
-            <div class="absolute inset-0 p-4 flex flex-col  overflow-y-auto transition-opacity duration-200"
+            <div class="absolute inset-0 p-4 flex flex-col  overflow-y-auto transition-blur duration-200"
                  class:opacity-0={!currentFile}
                  class:opacity-100={currentFile}
                  class:pointer-events-auto={currentFile}
