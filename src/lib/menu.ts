@@ -6,6 +6,7 @@ export async function setupAppMenu() {
     const appWindow = getCurrentWindow();
 
     const newNoteItem = await MenuItem.new({ text: 'New Note', id: 'new-note', accelerator: 'CmdOrCtrl+N', action: () => appWindow.emit('menu-action', { action: 'new' }) });
+    const backItem = await MenuItem.new({ text: 'Back', id: 'back', accelerator: 'CmdOrCtrl+Left', action: () => appWindow.emit('menu-action', { action: 'back' }) });
     const saveItem = await MenuItem.new({ text: 'Save Note', id: 'save-note', accelerator: 'CmdOrCtrl+S', action: () => appWindow.emit('menu-action', { action: 'save' }) });
     const search = await MenuItem.new({ text: 'Search', id: 'search', accelerator: 'CmdOrCtrl+K', action: () => appWindow.emit('menu-action', { action: 'search' }) });
     const deleteItem = await MenuItem.new({ text: 'Delete Note', id: 'delete-note', accelerator: 'CmdOrCtrl+L', action: () => appWindow.emit('menu-action', { action: 'delete' }) });
@@ -13,7 +14,7 @@ export async function setupAppMenu() {
     const toggleSidebarItem = await MenuItem.new({ text: 'Toggle Sidebar', id: 'toggle-sidebar', accelerator: 'CmdOrCtrl+.', action: () => appWindow.emit('menu-action', { action: 'toggle-sidebar' }) });
     const quitItem = await MenuItem.new({ text: 'Quit mog', id: 'quit-app', accelerator: 'CmdOrCtrl+Q', action: async () => await exit(0) });
 
-    const customFileItems = [newNoteItem, saveItem, deleteItem,renameItem, search ];
+    const customFileItems = [newNoteItem, saveItem, deleteItem,renameItem, search, backItem, ];
 
     const defaultMenu = await Menu.default();
 

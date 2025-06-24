@@ -11,9 +11,8 @@
     let searchList = $derived(performSearch(searchField));
     let selectedIndex = $state(0);
 
-    let { showSearchDialog = $bindable(), currentFile = $bindable(), notesList = $bindable() } = $props()
+    let { showSearchDialog = $bindable(), currentFile = $bindable(), notesList = $bindable(), currentFolder = $bindable() } = $props()
 
-    // Reset selected index when search results change
     $effect(() => {
         if (searchList.length > 0) {
             selectedIndex = 0;
@@ -40,7 +39,7 @@
 
     async function openNote(fileName: string): Promise<void> {
         if (currentFile === fileName) return;
-        const editorData = await fileManager.readFile(fileName);
+        const editorData = await fileManager.readFile(fileName, currentFolder);
         if (editorData) {
             await editorService.render(editorData);
             currentFile = fileName;

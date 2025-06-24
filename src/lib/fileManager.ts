@@ -57,9 +57,9 @@ export async function listAll(baseFolder: string): Promise<ListAllResult> {
         const noteFiles: string[] = [];
 
         entries.forEach(entry => {
-            if (entry.children !== undefined) {
+            if (entry.isDirectory) {
                 folders.push(entry.name!);
-            } else if (entry.name!.endsWith('.json)')) {
+            } else if (entry.name!.endsWith('.json')) {
                 noteFiles.push(entry.name!);
             }
         })

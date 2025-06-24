@@ -13,7 +13,7 @@
     import SearchConsole from "$lib/components/search.svelte";
     import Baka from "$lib/components/flurb.svelte";
     import {toast, Toaster} from 'svelte-sonner';
-    import {File, Plus, FilePenLine, Cat, Search, Baby} from 'lucide-svelte';
+    import {File, Plus, FilePenLine, Cat, Search, FolderClosedIcon, FolderOpenIcon} from 'lucide-svelte';
 
 
     let editorEL: HTMLElement;
@@ -22,6 +22,7 @@
     let isSidebarVisible = $state(true);
     let currentFile = $state<string | null>(null);
     let notesList = $state<string[]>([]);
+    let foldersList = $state<string[]>([]);
     let showNewNoteDialog = $state(false);
     let showSearchDialog = $state(false);
     let showRenameDialog = $state(false);
@@ -29,7 +30,8 @@
     let newFileTitle = $state('');
     let isDeleting = $state(false);
     let unlistenMenu: (() => void) | null = null;
-    let currentFolder = $state('bob');
+    let currentFolder = $state('');
+    let breadcrum = $state<string[]>([]);
 
     onMount(async () => {
 
@@ -96,6 +98,9 @@
                 if (!currentFile) return;
                 showReDialog();
                 break;
+            case 'back':
+                goBack();
+                break;
 
             case 'search':
                 showSearch();
@@ -109,7 +114,10 @@
 
     async function loadNotesList(): Promise<void> {
         try {
-            notesList = await fileManager.listNotes(currentFolder);
+            const { noteFiles, folders } = await fileManager.listAll(currentFolder);
+            notesList = noteFiles;
+            foldersList = folders;
+
         } catch (error) {
             console.error("Failed to load notes list:", error);
             toast.error("Failed to load notes.");
@@ -177,6 +185,23 @@
         if (editorData) {
             await editorService.render(editorData);
             currentFile = fileName;
+        }
+    }
+
+    function openFolder(folderName: string): void {
+        if (currentFolder !== folderName) {
+            breadcrum.push(currentFolder);
+        }
+        currentFolder = folderName;
+        loadNotesList();
+    }
+
+    function goBack(): void {
+        if (breadcrum.length === 0) return;
+        const lastFolder = breadcrum.pop();
+        if (lastFolder !== undefined) {
+            currentFolder = lastFolder;
+            loadNotesList();
         }
     }
 
@@ -281,6 +306,27 @@
                                     <File size={16} class="shrink-0"/>
                                 {/if}
                                 <span class="truncate">{getDisplayName(note)}</span>
+                            </button>
+                        {/each}
+
+                        {#each foldersList as folder}
+                            <button
+                                    class="flex items-center gap-2 hover:bg-[#2c2c2c]  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
+
+                                    class:font-black={currentFolder === folder}
+                                    class:scale-102={currentFolder === folder}
+                                    onclick={() => openFolder(folder)}
+                                    onkeydown={(e) => handleKeyDown(e, () => openFolder(folder))}
+                                    type="button"
+                            >
+                                {#if currentFolder === folder}
+                                    <FolderOpenIcon size={16} class="shrink-0"/>
+                                {/if}
+
+                                {#if currentFolder !== folder}
+                                    <FolderClosedIcon size={16} class="shrink-0"/>
+                                {/if}
+                                <span class="truncate">{getDisplayName(folder)}</span>
                             </button>
                         {/each}
 
@@ -415,5 +461,5 @@
 {/if}
 
 {#if showSearchDialog}
-    <SearchConsole bind:showSearchDialog={showSearchDialog} bind:currentFile={currentFile} bind:notesList={notesList}></SearchConsole>
+    <SearchConsole bind:showSearchDialog={showSearchDialog} bind:currentFile={currentFile} bind:notesList={notesList} bind:currentFolder={currentFolder}></SearchConsole>
 {/if}
