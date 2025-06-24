@@ -140,14 +140,26 @@ h6.ce-header {
 .ce-popover__container {
     background-color: #191919;
     font-family: vr;
-    border-color: #2c2c2c;
+    border-radius: 0.5rem !important;
+    border-width: 0.125rem !important;
+    border-color: #2c2c2c !important;
 
 }
 
 .ce-popover-item {
     color: #D4D4D4;
+
 }
 
+.ce-popover-item:hover {
+    color: #191919 !important;
+
+}
+
+.cdx-search-field, ce-popover__search {
+    background-color: #191919;
+    color: #D4D4D4;
+}
 
 
 .cdx-quote__caption {

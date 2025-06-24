@@ -29,6 +29,7 @@
     let newFileTitle = $state('');
     let isDeleting = $state(false);
     let unlistenMenu: (() => void) | null = null;
+    let currentFolder = $state('bob');
 
     onMount(async () => {
 
@@ -108,7 +109,7 @@
 
     async function loadNotesList(): Promise<void> {
         try {
-            notesList = await fileManager.listNotes();
+            notesList = await fileManager.listNotes(currentFolder);
         } catch (error) {
             console.error("Failed to load notes list:", error);
             toast.error("Failed to load notes.");
@@ -119,7 +120,7 @@
         if (!currentFile) return;
         const outputData = await editorService.save();
         if (outputData) {
-            await fileManager.writeFile(currentFile, outputData);
+            await fileManager.writeFile(currentFile, currentFolder, outputData);
             toast.success(`'${getDisplayName(currentFile)}' saved`);
         }
     }
@@ -128,7 +129,7 @@
         if (!currentFile) return;
         const outputData = await editorService.save();
         if (outputData) {
-            await fileManager.writeFile(currentFile, outputData);
+            await fileManager.writeFile(currentFile, currentFolder, outputData);
         }
     }
 
@@ -139,7 +140,7 @@
             toast.error('This name is already in use!');
             return;
         }
-        await fileManager.renameFileByCopy(currentFile.trim(), newFileTitle.trim().concat('.json'));
+        await fileManager.renameFileByCopy(currentFile.trim(), newFileTitle.trim().concat('.json'), currentFolder);
         await loadNotesList();
         currentFile = newFileTitle.trim().concat('.json');
         hideReDialog();
@@ -155,7 +156,7 @@
             });
 
             if (confirmed) {
-                await fileManager.deleteFile(currentFile);
+                await fileManager.deleteFile(currentFile, currentFolder);
                 await editorService.clearEditor();
                 const deletedNoteName = getDisplayName(currentFile);
                 currentFile = null;
@@ -172,7 +173,7 @@
 
     async function openNote(fileName: string): Promise<void> {
         if (currentFile === fileName) return;
-        const editorData = await fileManager.readFile(fileName);
+        const editorData = await fileManager.readFile(fileName, currentFolder);
         if (editorData) {
             await editorService.render(editorData);
             currentFile = fileName;
@@ -190,7 +191,7 @@
         currentFile = fileName;
         const outputData = await editorService.save();
         if (outputData) {
-            await fileManager.writeFile(fileName, outputData);
+            await fileManager.writeFile(fileName, currentFolder, outputData);
             await loadNotesList();
         }
         hideCreateDialog();

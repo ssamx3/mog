@@ -27,9 +27,10 @@ export async function checkFolderExists(): Promise<void> {
     }
 }
 
-export async function listNotes(): Promise<string[]> {
+export async function listNotes(baseFolder: string): Promise<string[]> {
     try {
-        const entries: FileEntry[] = await readDir(FOLDER_NAME, FILE_OPTIONS);
+        const path = `${FOLDER_NAME}/${baseFolder}`;
+        const entries: FileEntry[] = await readDir(path, FILE_OPTIONS);
         const noteFiles = entries
             .filter(entry => entry.name?.endsWith('.json') && entry.children === undefined)
             .map(entry => entry.name!);
@@ -41,28 +42,42 @@ export async function listNotes(): Promise<string[]> {
     }
 }
 
+interface ListAllResult {
+    noteFiles: string[];
+    folders: string[];
+}
 
-/*
-export async function listAll(): Promise<string[]> {
+export async function listAll(baseFolder: string): Promise<ListAllResult> {
     try {
-        const entries: FileEntry[] = await readDir(FOLDER_NAME, FILE_OPTIONS);
-        const noteFiles = entries
-            .map(entry => entry.name!);
+        const path = `${FOLDER_NAME}/${baseFolder}`;
+        const entries: FileEntry[] = await readDir(path, FILE_OPTIONS);
+
+
+        const folders: string[] = [];
+        const noteFiles: string[] = [];
+
+        entries.forEach(entry => {
+            if (entry.children !== undefined) {
+                folders.push(entry.name!);
+            } else if (entry.name!.endsWith('.json)')) {
+                noteFiles.push(entry.name!);
+            }
+        })
 
         console.log(noteFiles);
-        return noteFiles;
+        console.log(folders);
+        return { noteFiles, folders};
     } catch (error) {
-        console.log(noteFiles);
         console.warn("Could not read notes directory (it may not exist yet):", error);
-        return [];
+        return { noteFiles: [], folders: [] };
     }
 }
-*/
 
 
-export async function writeFile(fileName: string, data: OutputData): Promise<void> {
+
+export async function writeFile(fileName: string, baseFolder: string, data: OutputData): Promise<void> {
     try {
-        const path = `${FOLDER_NAME}/${fileName}`;
+        const path = `${FOLDER_NAME}/${baseFolder}/${fileName}`;
         await writeTextFile(path, JSON.stringify(data, null, 2), FILE_OPTIONS);
         console.log(`Successfully saved to Desktop/${path}`);
     } catch (error) {
@@ -70,9 +85,9 @@ export async function writeFile(fileName: string, data: OutputData): Promise<voi
     }
 }
 
-export async function readFile(fileName:string): Promise<OutputData | null> {
+export async function readFile(fileName:string, baseFolder: string): Promise<OutputData | null> {
     try {
-        const path = `${FOLDER_NAME}/${fileName}`;
+        const path = `${FOLDER_NAME}/${baseFolder}/${fileName}`;
         const jsonString = await readTextFile(path, FILE_OPTIONS);
         const data = JSON.parse(jsonString) as OutputData;
         return data;
@@ -82,9 +97,9 @@ export async function readFile(fileName:string): Promise<OutputData | null> {
     }
 }
 
-export async function deleteFile(fileName: string): Promise<void> {
+export async function deleteFile(fileName: string, baseFolder: string): Promise<void> {
     try {
-        const path = `${FOLDER_NAME}/${fileName}`;
+        const path = `${FOLDER_NAME}/${baseFolder}/${fileName}`;
         await remove(path, FILE_OPTIONS);
         console.log(`Successfully deleted AppData/${path}`);
     } catch (error) {
@@ -92,10 +107,10 @@ export async function deleteFile(fileName: string): Promise<void> {
     }
 }
 
-export async function renameFile(currentFileName: string, newFileName: string): Promise<void> {
+export async function renameFile(currentFileName: string, newFileName: string, baseFolder: string): Promise<void> {
     try {
-        const oldPath = `${FOLDER_NAME}/${currentFileName}`;
-        const newPath = `${FOLDER_NAME}/${newFileName}`;
+        const oldPath = `${FOLDER_NAME}/${baseFolder}/${currentFileName}`;
+        const newPath = `${FOLDER_NAME}/${baseFolder}/${newFileName}`;
 
         await rename(oldPath, newPath, FILE_OPTIONS);
         console.log(`Successfully renamed "${currentFileName}" to "${newFileName}"`);
@@ -105,16 +120,16 @@ export async function renameFile(currentFileName: string, newFileName: string): 
     }
 }
 
-export async function renameFileByCopy(currentFileName: string, newFileName: string): Promise<void> {
-    const oldPath = `${FOLDER_NAME}/${currentFileName}`;
-    const newPath = `${FOLDER_NAME}/${newFileName}`;
+export async function renameFileByCopy(currentFileName: string, newFileName: string, baseFolder: string): Promise<void> {
+    const oldPath = `${FOLDER_NAME}/${baseFolder}/${currentFileName}`;
+    const newPath = `${FOLDER_NAME}/${baseFolder}/${newFileName}`;
 
     try {
         const content = await readTextFile(oldPath, FILE_OPTIONS);
 
         await writeTextFile(newPath, content, FILE_OPTIONS);
 
-        await deleteFile(currentFileName);
+        await deleteFile(currentFileName,baseFolder);
 
         console.log(`Successfully renamed (by copy) "${currentFileName}" to "${newFileName}"`);
 
