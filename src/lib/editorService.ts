@@ -10,6 +10,11 @@ import Table from '@editorjs/table'
 import DragDrop from "editorjs-drag-drop";
 
 let editor: EditorJS | null = null;
+let ph: String | null = null;
+
+export async function changePh(holder: String): Promise<void> {
+    ph = holder;
+}
 
 export async function initializeEditor(holder: HTMLElement): Promise<EditorJS> {
     editor = new EditorJS({
@@ -69,7 +74,7 @@ export async function initializeEditor(holder: HTMLElement): Promise<EditorJS> {
         },
 
 
-        placeholder: 'Type anything...',
+        placeholder: ph,
     });
 
     await editor.isReady;

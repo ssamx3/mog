@@ -2,7 +2,7 @@
     import {onDestroy, onMount} from "svelte";
     import { load } from '@tauri-apps/plugin-store';
     import {invoke} from '@tauri-apps/api/core';
-    import {fade, scale, blur} from 'svelte/transition';
+    import {fade, scale, blur, slide} from 'svelte/transition';
     import {quintOut} from 'svelte/easing';
     import * as editorService from '$lib/editorService';
     import * as fileManager from '$lib/fileManager';
@@ -11,9 +11,9 @@
     import {confirm} from '@tauri-apps/plugin-dialog';
     import '../app.css';
     import SearchConsole from "$lib/components/search.svelte";
-    import Baka from "$lib/components/flurb.svelte";
+
     import {toast, Toaster} from 'svelte-sonner';
-    import {File, Plus, FilePenLine, Cat, Search, FolderClosedIcon, FolderOpenIcon} from 'lucide-svelte';
+    import {File, Plus, FilePenLine, Cat, Search, FolderClosedIcon, FolderOpenIcon, ChevronLeft} from 'lucide-svelte';
 
 
     let editorEL: HTMLElement;
@@ -31,7 +31,7 @@
     let isDeleting = $state(false);
     let unlistenMenu: (() => void) | null = null;
     let currentFolder = $state('');
-    let breadcrum = $state<string[]>([]);
+    let breadcrumb = $state<string[]>([]);
 
     onMount(async () => {
 
@@ -73,15 +73,24 @@
         updateMenuItemStates(!!currentFile);
     });
 
+
     function showOnboarding() {
         toast.info('Welcome to Mog!', {
             duration: 10000,
-            position: 'top-right',
-            html: true
+            position: 'top-right'
         })
     }
 
-    
+
+
+    function getFullFilePath(fileName: string, folder: string): string {
+        return folder ? `${folder}/${fileName}` : fileName;
+    }
+
+    function getFileName(fullPath: string): string {
+        const parts = fullPath.split('/');
+        return parts[parts.length - 1];
+    }
 
     function handleMenuAction(action: string) {
         switch (action) {
@@ -112,7 +121,7 @@
     }
 
 
-    async function loadNotesList(): Promise<void> {
+   export async function loadNotesList(): Promise<void> {
         try {
             const { noteFiles, folders } = await fileManager.listAll(currentFolder);
             notesList = noteFiles;
@@ -128,8 +137,9 @@
         if (!currentFile) return;
         const outputData = await editorService.save();
         if (outputData) {
-            await fileManager.writeFile(currentFile, currentFolder, outputData);
-            toast.success(`'${getDisplayName(currentFile)}' saved`);
+            const fileName = getFileName(currentFile);
+            await fileManager.writeFile(fileName, currentFolder, outputData);
+            toast.success(`'${getDisplayName(fileName)}' saved`);
         }
     }
 
@@ -137,36 +147,41 @@
         if (!currentFile) return;
         const outputData = await editorService.save();
         if (outputData) {
-            await fileManager.writeFile(currentFile, currentFolder, outputData);
+            const fileName = getFileName(currentFile);
+            await fileManager.writeFile(fileName, currentFolder, outputData);
         }
     }
-
     async function handleRename(): Promise<void> {
         if (!currentFile) return;
-        if (notesList.some(file => file.toUpperCase() === newFileTitle.trim().concat('.json').toUpperCase())){
+        const fileName = getFileName(currentFile);
+        const newFileName = newFileTitle.trim().concat('.json');
+
+        if (notesList.some(file => file.toUpperCase() === newFileName.toUpperCase())){
             newFileTitle = '';
             toast.error('This name is already in use!');
             return;
         }
-        await fileManager.renameFileByCopy(currentFile.trim(), newFileTitle.trim().concat('.json'), currentFolder);
+
+        await fileManager.renameFileByCopy(fileName, newFileName, currentFolder);
         await loadNotesList();
-        currentFile = newFileTitle.trim().concat('.json');
+        currentFile = getFullFilePath(newFileName, currentFolder); // Update with new full path
         hideReDialog();
-        toast.info(`'${getDisplayName(currentFile)}' renamed`);
+        toast.info(`'${getDisplayName(newFileName)}' renamed`);
     }
 
     async function handleDelete(): Promise<void> {
         if (!currentFile || isDeleting) return;
         try {
             isDeleting = true;
-            const confirmed = await confirm(`Are you sure you want to delete '${getDisplayName(currentFile)}'?`, {
+            const fileName = getFileName(currentFile);
+            const confirmed = await confirm(`Are you sure you want to delete '${getDisplayName(fileName)}'?`, {
                 title: 'Delete Note'
             });
 
             if (confirmed) {
-                await fileManager.deleteFile(currentFile, currentFolder);
+                await fileManager.deleteFile(fileName, currentFolder);
                 await editorService.clearEditor();
-                const deletedNoteName = getDisplayName(currentFile);
+                const deletedNoteName = getDisplayName(fileName);
                 currentFile = null;
                 await loadNotesList();
                 toast.info(`'${deletedNoteName}' deleted`);
@@ -180,25 +195,40 @@
     }
 
     async function openNote(fileName: string): Promise<void> {
-        if (currentFile === fileName) return;
+        const fullPath = getFullFilePath(fileName, currentFolder);
+
+        if (currentFile === fullPath) return;
+
         const editorData = await fileManager.readFile(fileName, currentFolder);
         if (editorData) {
+            await editorService.changePh('type something');
             await editorService.render(editorData);
-            currentFile = fileName;
+            currentFile = fullPath;
         }
     }
 
     function openFolder(folderName: string): void {
+
+
+
         if (currentFolder !== folderName) {
-            breadcrum.push(currentFolder);
+            editorService.changePh('');
+            currentFile = null;
+
+            breadcrumb.push(currentFolder);
+
+        } else {
+            breadcrumb.push('');
         }
-        currentFolder = folderName;
+
+        editorService.clearEditor();
+        currentFolder = currentFolder ? `${currentFolder}/${folderName}` : folderName;
         loadNotesList();
     }
 
     function goBack(): void {
-        if (breadcrum.length === 0) return;
-        const lastFolder = breadcrum.pop();
+        if (breadcrumb.length === 0) return;
+        const lastFolder = breadcrumb.pop();
         if (lastFolder !== undefined) {
             currentFolder = lastFolder;
             loadNotesList();
@@ -213,7 +243,7 @@
             return;
         }
         await editorService.clearEditor();
-        currentFile = fileName;
+        currentFile = getFullFilePath(fileName, currentFolder);
         const outputData = await editorService.save();
         if (outputData) {
             await fileManager.writeFile(fileName, currentFolder, outputData);
@@ -239,6 +269,9 @@
     function showSearch() {
 
         showSearchDialog = true;
+    }
+    function getBreadCrumbOfNewFile() {
+
     }
 
 
@@ -275,6 +308,33 @@
         return fileName.replace('.json', '');
     }
 
+    async function navigateToFolder(targetFolderPath: string) {
+        if (currentFolder === targetFolderPath) return;
+        currentFile = null;
+        await editorService.clearEditor();
+
+        if (targetFolderPath === '') {
+            breadcrumb = [];
+            currentFolder = '';
+        } else {
+            const pathParts = targetFolderPath.split('/');
+            breadcrumb = [];
+
+            for (let i = 0; i < pathParts.length; i++) {
+                if (i === 0) {
+                    breadcrumb.push('');
+                } else {
+                    breadcrumb.push(pathParts.slice(0, i).join('/'));
+                }
+            }
+
+            currentFolder = targetFolderPath;
+        }
+
+        await loadNotesList();
+    }
+
+
 
 </script>
 
@@ -286,23 +346,37 @@
          class:w-60={isSidebarVisible}>
         <div class="h-full  bg-gradient-to-b from-[#202020] to-[#170d1f]  rounded-xl p-3 relative flex flex-col">
             <div class="flex-1 overflow-y-auto scrollbar-hide">
-                <section>
-                    <ul class="box flex-column flex-wrap scrollbar-hide">
+                {#key currentFolder}
+                <section in:scale={{ duration: 200, delay: 100 }}
+                         out:blur={{ duration: 100 }}>
+
+
+                    <ul class="box flex-column flex-wrap scrollbar-hide" >
+                        {#if breadcrumb.length !== 0}
+                            <button
+                                    class="flex top-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
+                                    onclick={()=>goBack()}
+                                    type="button">
+
+                                <ChevronLeft class="shrink-0" size={20}/>
+                                <span class="truncate">{currentFolder}</span>
+                            </button>
+                            {/if}
                         {#each notesList as note}
                             <button
-                                    class="flex items-center gap-2 hover:bg-[#2c2c2c]  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
+                                    class="flex items-center gap-2 hover:bg-[#2c2c2c] stagger-item  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
 
-                                    class:font-black={currentFile === note}
-                                    class:scale-102={currentFile === note}
+                                    class:font-black={currentFile === getFullFilePath(note, currentFolder)}
+                                    class:scale-102={currentFile === getFullFilePath(note, currentFolder)}
                                     onclick={() => {openNote(note); handleSecretSave()}}
                                     onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
                                     type="button"
                             >
-                                {#if currentFile === note}
+                                {#if currentFile === getFullFilePath(note, currentFolder)}
                                     <FilePenLine size={16} class="shrink-0"/>
                                 {/if}
 
-                                {#if currentFile !== note}
+                                {#if currentFile !== getFullFilePath(note, currentFolder)}
                                     <File size={16} class="shrink-0"/>
                                 {/if}
                                 <span class="truncate">{getDisplayName(note)}</span>
@@ -311,7 +385,7 @@
 
                         {#each foldersList as folder}
                             <button
-                                    class="flex items-center gap-2 hover:bg-[#2c2c2c]  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
+                                    class="flex items-center gap-2 hover:bg-[#2c2c2c]  stagger-item transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
 
                                     class:font-black={currentFolder === folder}
                                     class:scale-102={currentFolder === folder}
@@ -333,10 +407,11 @@
                     </ul>
 
                 </section>
+                {/key}
 
             </div>
             <button
-                    class="flex items-center gap-2 bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
+                    class="flex bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
                     onclick={()=>showSearch()}
                     type="button">
 
@@ -344,7 +419,7 @@
                 <span class="truncate">search</span>
             </button>
             <button
-                    class="flex items-center gap-2 bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
+                    class="flex  bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
                     onclick={()=>showCreateDialog()}
                     type="button">
 
@@ -354,15 +429,15 @@
         </div>
     </div>
 
-    <div class="flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out">
+    <div class="flex flex-col flex-1 min-w-0 transition-all duration-200 ease-in-out">
         <div class="relative flex-1">
-            <div class="absolute inset-0 p-4 flex flex-col  overflow-y-auto transition-blur duration-200"
+            <div class="absolute inset-0 p-4 flex flex-col  overflow-y-auto transition-all duration-500"
                  class:opacity-0={!currentFile}
                  class:opacity-100={currentFile}
                  class:pointer-events-auto={currentFile}
                  class:pointer-events-none={!currentFile}>
                 {#if currentFile}
-                <h1 class="font-[vr] font-bold text-2xl pl-23 text-[#d4d4d4]">{currentFile.replace('.json', '')}</h1>
+                <h1 class="font-[vr] font-bold text-2xl pl-23 text-[#d4d4d4]">{getFileName(currentFile.replace('.json', ''))}</h1>
                     {/if}
                 <div bind:this={editorEl} class="mx-auto pl-8 w-full h-full"></div>
             </div>
@@ -461,5 +536,10 @@
 {/if}
 
 {#if showSearchDialog}
-    <SearchConsole bind:showSearchDialog={showSearchDialog} bind:currentFile={currentFile} bind:notesList={notesList} bind:currentFolder={currentFolder}></SearchConsole>
+    <SearchConsole
+            bind:showSearchDialog={showSearchDialog}
+            bind:currentFile={currentFile}
+            bind:currentFolder={currentFolder}
+
+    />
 {/if}

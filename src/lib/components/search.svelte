@@ -1,17 +1,32 @@
+// search.svelte
 <script lang="ts">
     import {fade, scale} from 'svelte/transition';
+
     import * as fileManager from '$lib/fileManager';
+    import type {NoteEntry} from '$lib/fileManager';
     import {quintOut} from "svelte/easing";
-    import {onMount} from "svelte";
     import {File, FilePenLine} from "lucide-svelte";
     import * as editorService from "$lib/editorService";
-    import {toast} from "svelte-sonner";
 
     let searchField = $state('');
-    let searchList = $derived(performSearch(searchField));
+    let allNotes = $state<NoteEntry[]>([]);
     let selectedIndex = $state(0);
 
-    let { showSearchDialog = $bindable(), currentFile = $bindable(), notesList = $bindable(), currentFolder = $bindable() } = $props()
+    let {
+        showSearchDialog = $bindable(),
+        currentFile = $bindable(),
+        currentFolder = $bindable(),
+    } = $props();
+
+    $effect(() => {
+        if (showSearchDialog) {
+            fileManager.listAllNotesRecursively().then(notes => {
+                allNotes = notes;
+            });
+        }
+    });
+
+    let searchList = $derived(performSearch(searchField));
 
     $effect(() => {
         if (searchList.length > 0) {
@@ -19,30 +34,33 @@
         }
     });
 
-    function performSearch(searchTerm: string) {
+    function performSearch(searchTerm: string): NoteEntry[] {
         if (!searchTerm) return [];
-        return notesList.filter((note) => note.toLowerCase().includes(searchTerm.toLowerCase()));
-    }
-
-    function handleKeyDown(event: KeyboardEvent, action: () => void) {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            action();
-        }
+        return allNotes.filter((note) =>
+            note.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
     }
 
     function hideSearch() {
         showSearchDialog = false;
         searchField = '';
-        selectedIndex = 0;
     }
 
-    async function openNote(fileName: string): Promise<void> {
-        if (currentFile === fileName) return;
-        const editorData = await fileManager.readFile(fileName, currentFolder);
+    async function openNote(note: NoteEntry): Promise<void> {
+        const fullPath = note.path ? `${note.path}/${note.name}` : note.name;
+        if (currentFile === fullPath) {
+            hideSearch();
+            return;
+        }
+
+
+        const editorData = await fileManager.readFile(note.name, note.path);
         if (editorData) {
-            await editorService.render(editorData);
-            currentFile = fileName;
+            await editorService.render(editorData)
+            currentFolder = note.path;
+            currentFile = fullPath;
+
+            hideSearch();
         }
     }
 
@@ -51,7 +69,6 @@
             hideSearch();
             return;
         }
-
         if (searchList.length === 0) return;
 
         switch (event.key) {
@@ -61,13 +78,12 @@
                 break;
             case 'ArrowUp':
                 event.preventDefault();
-                selectedIndex = selectedIndex === 0 ? searchList.length - 1 : selectedIndex - 1;
+                selectedIndex = (selectedIndex === 0 ? searchList.length - 1 : selectedIndex - 1);
                 break;
             case 'Enter':
                 event.preventDefault();
                 if (searchList[selectedIndex]) {
                     openNote(searchList[selectedIndex]);
-                    hideSearch();
                 }
                 break;
         }
@@ -85,7 +101,7 @@
          out:scale={{ duration: 200, start: 0.95, opacity: 0 }}>
         <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search all notes..."
                 class="mb-4 p-3 text-[#ffffff] font-[vr] rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-300 w-full"
                 bind:value={searchField}
                 autofocus
@@ -100,20 +116,22 @@
                 <ul class="box flex-column flex-wrap scrollbar-hide max-h-60 overflow-y-auto">
                     {#each searchList as note, index}
                         <button
-                                class="flex items-center gap-2 hover:bg-[#3c3c3c] transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis"
-                                class:font-black={currentFile === note}
-                                class:scale-102={currentFile === note}
+                                class="flex items-center justify-between gap-2 hover:bg-[#3c3c3c] transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left"
                                 class:bg-[#3c3c3c]={selectedIndex === index}
-                                onclick={() => {openNote(note); hideSearch();}}
-                                onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
+                                onclick={() => openNote(note)}
                                 type="button"
                         >
-                            {#if currentFile === note}
-                                <FilePenLine size={16} class="shrink-0"/>
-                            {:else}
-                                <File size={16} class="shrink-0"/>
-                            {/if}
-                            <span class="truncate">{getDisplayName(note)}</span>
+                            <div class="flex items-center gap-2 truncate">
+                                {#if currentFile === (note.path ? `${note.path}/${note.name}` : note.name)}
+                                    <FilePenLine size={16} class="shrink-0"/>
+                                {:else}
+                                    <File size={16} class="shrink-0"/>
+                                {/if}
+                                <span class="truncate">{getDisplayName(note.name)}</span>
+                            </div>
+                            <span class="text-xs text-[#6e6e6e] font-mono shrink-0 ml-2">
+                                {note.path || 'Home'}
+                            </span>
                         </button>
                     {/each}
                 </ul>

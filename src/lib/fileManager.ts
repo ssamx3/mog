@@ -63,9 +63,6 @@ export async function listAll(baseFolder: string): Promise<ListAllResult> {
                 noteFiles.push(entry.name!);
             }
         })
-
-        console.log(noteFiles);
-        console.log(folders);
         return { noteFiles, folders};
     } catch (error) {
         console.warn("Could not read notes directory (it may not exist yet):", error);
@@ -137,4 +134,30 @@ export async function renameFileByCopy(currentFileName: string, newFileName: str
         console.error(`Error during rename-by-copy for "${currentFileName}"`, error);
         throw error;
     }
+}
+
+export interface NoteEntry {
+    name: string;
+    path: string;
+}
+
+export async function listAllNotesRecursively(currentPath: string = ''): Promise<NoteEntry[]> {
+    const fullSearchPath = currentPath ? `${FOLDER_NAME}/${currentPath}` : FOLDER_NAME;
+    let allNotes: NoteEntry[] = [];
+
+    try {
+        const entries = await readDir(fullSearchPath, FILE_OPTIONS);
+
+        for (const entry of entries) {
+            const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name!;
+            if (entry.isDirectory) {
+                allNotes.push(...await listAllNotesRecursively(newPath));
+            } else if (entry.name?.endsWith('.json')) {
+                allNotes.push({ name: entry.name, path: currentPath });
+            }
+        }
+    } catch (error) {
+        console.warn(`Could not read directory ${fullSearchPath}:`, error);
+    }
+    return allNotes;
 }
