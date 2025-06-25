@@ -11,6 +11,7 @@
     import {confirm} from '@tauri-apps/plugin-dialog';
     import '../app.css';
     import SearchConsole from "$lib/components/search.svelte";
+    import {breadcrumb} from "$lib/state.svelte"
 
     import {toast, Toaster} from 'svelte-sonner';
     import {File, Plus, FilePenLine, Cat, Search, FolderClosedIcon, FolderOpenIcon, ChevronLeft} from 'lucide-svelte';
@@ -21,8 +22,7 @@
     let editorEl: HTMLElement;
     let isSidebarVisible = $state(true);
     let currentFile = $state<string | null>(null);
-    let notesList = $state<string[]>([]);
-    let foldersList = $state<string[]>([]);
+    import { loadNotesList, notesList, foldersList } from '$lib/notes.svelte';
     let showNewNoteDialog = $state(false);
     let showSearchDialog = $state(false);
     let showRenameDialog = $state(false);
@@ -31,14 +31,14 @@
     let isDeleting = $state(false);
     let unlistenMenu: (() => void) | null = null;
     let currentFolder = $state('');
-    let breadcrumb = $state<string[]>([]);
+
 
     onMount(async () => {
 
 
         try {
             await editorService.initializeEditor(editorEl);
-            await loadNotesList();
+            await loadNotesList(currentFolder);
             await setupAppMenu();
 
             const appWindow = getCurrentWindow();
@@ -121,17 +121,7 @@
     }
 
 
-   export async function loadNotesList(): Promise<void> {
-        try {
-            const { noteFiles, folders } = await fileManager.listAll(currentFolder);
-            notesList = noteFiles;
-            foldersList = folders;
-
-        } catch (error) {
-            console.error("Failed to load notes list:", error);
-            toast.error("Failed to load notes.");
-        }
-    }
+   
 
     async function handleSave(): Promise<void> {
         if (!currentFile) return;
@@ -163,7 +153,7 @@
         }
 
         await fileManager.renameFileByCopy(fileName, newFileName, currentFolder);
-        await loadNotesList();
+        await loadNotesList(currentFolder);
         currentFile = getFullFilePath(newFileName, currentFolder); // Update with new full path
         hideReDialog();
         toast.info(`'${getDisplayName(newFileName)}' renamed`);
@@ -183,7 +173,7 @@
                 await editorService.clearEditor();
                 const deletedNoteName = getDisplayName(fileName);
                 currentFile = null;
-                await loadNotesList();
+                await loadNotesList(currentFolder);
                 toast.info(`'${deletedNoteName}' deleted`);
             }
         } catch (error) {
@@ -223,7 +213,7 @@
 
         editorService.clearEditor();
         currentFolder = currentFolder ? `${currentFolder}/${folderName}` : folderName;
-        loadNotesList();
+        loadNotesList(currentFolder);
     }
 
     function goBack(): void {
@@ -231,7 +221,7 @@
         const lastFolder = breadcrumb.pop();
         if (lastFolder !== undefined) {
             currentFolder = lastFolder;
-            loadNotesList();
+            loadNotesList(currentFolder);
         }
     }
 
@@ -247,7 +237,7 @@
         const outputData = await editorService.save();
         if (outputData) {
             await fileManager.writeFile(fileName, currentFolder, outputData);
-            await loadNotesList();
+            await loadNotesList(currentFolder);
         }
         hideCreateDialog();
     }
@@ -314,11 +304,11 @@
         await editorService.clearEditor();
 
         if (targetFolderPath === '') {
-            breadcrumb = [];
+            breadcrumb.length = 0;
             currentFolder = '';
         } else {
             const pathParts = targetFolderPath.split('/');
-            breadcrumb = [];
+            breadcrumb.length = 0;
 
             for (let i = 0; i < pathParts.length; i++) {
                 if (i === 0) {
@@ -331,7 +321,7 @@
             currentFolder = targetFolderPath;
         }
 
-        await loadNotesList();
+        await loadNotesList(currentFolder);
     }
 
 

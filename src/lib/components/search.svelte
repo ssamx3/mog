@@ -7,6 +7,8 @@
     import {quintOut} from "svelte/easing";
     import {File, FilePenLine} from "lucide-svelte";
     import * as editorService from "$lib/editorService";
+    import {breadcrumb, setBreadcrumb} from "$lib/state.svelte"
+    import { loadNotesList } from '$lib/notes.svelte';
 
     let searchField = $state('');
     let allNotes = $state<NoteEntry[]>([]);
@@ -57,8 +59,10 @@
         const editorData = await fileManager.readFile(note.name, note.path);
         if (editorData) {
             await editorService.render(editorData)
-            currentFolder = note.path;
+            currentFolder = note.path || '';
             currentFile = fullPath;
+            setBreadcrumb(note.path);
+            await loadNotesList(currentFolder);
 
             hideSearch();
         }
