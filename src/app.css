@@ -190,3 +190,6 @@ h6.ce-header {
     display: none !important;
 }
 
+.ct--shown {
+    opacity: 0 !important;
+}
