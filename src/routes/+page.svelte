@@ -205,20 +205,10 @@
     }
 
     function openFolder(folderName: string): void {
-
-
-
-        if (currentFolder !== folderName) {
-            editorService.changePh('');
-            currentFile = null;
-
-            breadcrumb.push(currentFolder);
-
-        } else {
-            breadcrumb.push('');
-        }
-
+        editorService.changePh('');
+        currentFile = null;
         editorService.clearEditor();
+        breadcrumb.push(currentFolder);
         currentFolder = currentFolder ? `${currentFolder}/${folderName}` : folderName;
         loadNotesList(currentFolder);
     }
@@ -226,7 +216,11 @@
     function goBack(): void {
         if (breadcrumb.length === 0) return;
         const lastFolder = breadcrumb.pop();
+
         if (lastFolder !== undefined) {
+            editorService.changePh('');
+            currentFile = null;
+            editorService.clearEditor();
             currentFolder = lastFolder;
             loadNotesList(currentFolder);
         }
@@ -353,7 +347,7 @@
 
 
                     <ul class="box flex-column flex-wrap scrollbar-hide" >
-                        <pre class="text-xs text-gray-500">{JSON.stringify(breadcrumb, null, 2)}</pre>
+
                         {#if breadcrumb.length !== 0}
                             <button
                                     class="flex top-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
@@ -364,27 +358,6 @@
                                 <span class="truncate">{currentFolder}</span>
                             </button>
                             {/if}
-                        <!--notes in sidebar-->
-                        {#each notesList as note}
-                            <button
-                                    class="flex items-center gap-2 hover:bg-[#2c2c2c] stagger-item  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
-
-                                    class:font-black={currentFile === getFullFilePath(note, currentFolder)}
-                                    class:scale-102={currentFile === getFullFilePath(note, currentFolder)}
-                                    onclick={() => {openNote(note); handleSecretSave()}}
-                                    onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
-                                    type="button"
-                            >
-                                {#if currentFile === getFullFilePath(note, currentFolder)}
-                                    <FilePenLine size={16} class="shrink-0"/>
-                                {/if}
-
-                                {#if currentFile !== getFullFilePath(note, currentFolder)}
-                                    <File size={16} class="shrink-0"/>
-                                {/if}
-                                <span class="truncate">{getDisplayName(note)}</span>
-                            </button>
-                        {/each}
 
                         {#each foldersList as folder}
                             <button
@@ -406,6 +379,28 @@
                                 <span class="truncate">{getDisplayName(folder)}</span>
                             </button>
                         {/each}
+                        {#each notesList as note}
+                            <button
+                                    class="flex items-center gap-2 hover:bg-[#2c2c2c] stagger-item  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
+
+                                    class:font-black={currentFile === getFullFilePath(note, currentFolder)}
+                                    class:scale-102={currentFile === getFullFilePath(note, currentFolder)}
+                                    onclick={() => {openNote(note); handleSecretSave()}}
+                                    onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
+                                    type="button"
+                            >
+                                {#if currentFile === getFullFilePath(note, currentFolder)}
+                                    <FilePenLine size={16} class="shrink-0"/>
+                                {/if}
+
+                                {#if currentFile !== getFullFilePath(note, currentFolder)}
+                                    <File size={16} class="shrink-0"/>
+                                {/if}
+                                <span class="truncate">{getDisplayName(note)}</span>
+                            </button>
+                        {/each}
+
+
 
                     </ul>
 
@@ -413,7 +408,6 @@
                 {/key}
 
             </div>
-            <h1 class="text-white">{breadcrumb} , {currentFolder}, {currentFile}</h1>
             <button
                     class="flex bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
                     onclick={()=>showSearch()}

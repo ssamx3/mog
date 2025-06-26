@@ -171,3 +171,22 @@ h6.ce-header {
     font-family: serif;
 }
 
+
+
+/* Hide all Editor.js tooltips */
+.codex-tooltip {
+    display: none !important;
+}
+
+/* Alternative: Hide specific tooltip classes if they use different names */
+.ce-tooltip,
+.editor-tooltip,
+.codex-tooltips {
+    display: none !important;
+}
+
+/* If tooltips use a specific parent container */
+.codex-editor .codex-tooltip {
+    display: none !important;
+}
+

@@ -1,7 +1,20 @@
 export let breadcrumb = $state<string[]>([]);
 
 export function setBreadcrumb(path: string | undefined) {
-    const newPath = path ? path.split('/') : [];
     breadcrumb.length = 0;
-    breadcrumb.push(...newPath);
+
+    if (!path) return;
+
+    const pathParts = path.split('/');
+    let currentPath = '';
+
+    for (let i = 0; i < pathParts.length; i++) {
+        if (i === 0) {
+            breadcrumb.push('');
+            currentPath = pathParts[i];
+        } else {
+            breadcrumb.push(currentPath);
+            currentPath = `${currentPath}/${pathParts[i]}`;
+        }
+    }
 }
