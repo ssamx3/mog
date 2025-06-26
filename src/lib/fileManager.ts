@@ -54,16 +54,34 @@ export async function listAll(baseFolder: string): Promise<ListAllResult> {
 
 
         const folders: string[] = [];
-        const noteFiles: string[] = [];
+        const noteFiles: { name: string, time: number }[] = [];
 
-        entries.forEach(entry => {
+        const fileReadPromises = entries.map(async (entry) => {
             if (entry.isDirectory) {
                 folders.push(entry.name!);
             } else if (entry.name!.endsWith('.json')) {
-                noteFiles.push(entry.name!);
+                try {
+                    const fileContent = await readTextFile(`${path}/${entry.name!}`, FILE_OPTIONS);
+                    const noteData = JSON.parse(fileContent);
+                    if (noteData && typeof noteData.time === 'number') {
+                        noteFiles.push({ name: entry.name!, time: noteData.time });
+                    } else {
+                        noteFiles.push({ name: entry.name!, time: 0 });
+                    }
+                } catch (readError) {
+                    console.error(`Error reading or parsing note file: ${entry.name!}`, readError);
+                    noteFiles.push({ name: entry.name!, time: 0 });
+                }
             }
-        })
-        return { noteFiles, folders};
+        });
+
+        await Promise.all(fileReadPromises);
+
+        noteFiles.sort((a, b) => b.time - a.time);
+
+        const sortedNoteFiles = noteFiles.map(note => note.name);
+
+        return { noteFiles: sortedNoteFiles, folders };
     } catch (error) {
         console.warn("Could not read notes directory (it may not exist yet):", error);
         return { noteFiles: [], folders: [] };

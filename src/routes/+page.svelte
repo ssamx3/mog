@@ -33,6 +33,9 @@
     let currentFolder = $state('');
 
 
+    let lastSavedData = $state<object | null>(null);
+
+
     onMount(async () => {
 
 
@@ -130,15 +133,18 @@
             const fileName = getFileName(currentFile);
             await fileManager.writeFile(fileName, currentFolder, outputData);
             toast.success(`'${getDisplayName(fileName)}' saved`);
+            lastSavedData = outputData;
+            await loadNotesList(currentFolder);
         }
     }
 
     async function handleSecretSave(): Promise<void> {
         if (!currentFile) return;
         const outputData = await editorService.save();
-        if (outputData) {
+        if (outputData && JSON.stringify(outputData.blocks) !== JSON.stringify(lastSavedData?.blocks)) {
             const fileName = getFileName(currentFile);
             await fileManager.writeFile(fileName, currentFolder, outputData);
+            lastSavedData = outputData;
         }
     }
     async function handleRename(): Promise<void> {
@@ -154,7 +160,7 @@
 
         await fileManager.renameFileByCopy(fileName, newFileName, currentFolder);
         await loadNotesList(currentFolder);
-        currentFile = getFullFilePath(newFileName, currentFolder); // Update with new full path
+        currentFile = getFullFilePath(newFileName, currentFolder);
         hideReDialog();
         toast.info(`'${getDisplayName(newFileName)}' renamed`);
     }
@@ -194,6 +200,7 @@
             await editorService.changePh('type something');
             await editorService.render(editorData);
             currentFile = fullPath;
+            lastSavedData = editorData;
         }
     }
 
@@ -238,6 +245,7 @@
         if (outputData) {
             await fileManager.writeFile(fileName, currentFolder, outputData);
             await loadNotesList(currentFolder);
+            lastSavedData = outputData;
         }
         hideCreateDialog();
     }
@@ -328,7 +336,10 @@
 
 </script>
 
-<Toaster duration={1000} position="top-right" richColors/>
+<Toaster duration={1000} position="top-right" richColors toastOptions={{
+    style: 'font-size: 14px; padding: 12px 16px; width: 240px;',
+    class: 'my-toast-class',
+}} />
 
 <div class="flex bg-[#191919] h-screen overflow-hidden pt-5">
     <div class="flex-shrink-0 pl-3 top-4 bottom-4 left-4 w-60 rounded-xl py-4 sidebar transition-all duration-200 ease-in-out"
@@ -342,6 +353,7 @@
 
 
                     <ul class="box flex-column flex-wrap scrollbar-hide" >
+                        <pre class="text-xs text-gray-500">{JSON.stringify(breadcrumb, null, 2)}</pre>
                         {#if breadcrumb.length !== 0}
                             <button
                                     class="flex top-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
@@ -352,6 +364,7 @@
                                 <span class="truncate">{currentFolder}</span>
                             </button>
                             {/if}
+                        <!--notes in sidebar-->
                         {#each notesList as note}
                             <button
                                     class="flex items-center gap-2 hover:bg-[#2c2c2c] stagger-item  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
@@ -400,6 +413,7 @@
                 {/key}
 
             </div>
+            <h1 class="text-white">{breadcrumb} , {currentFolder}, {currentFile}</h1>
             <button
                     class="flex bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
                     onclick={()=>showSearch()}
@@ -416,6 +430,7 @@
                 <Plus class="shrink-0" size={20}/>
                 <span class="truncate">add</span>
             </button>
+
         </div>
     </div>
 
@@ -533,3 +548,14 @@
 
     />
 {/if}
+
+<style>
+    :global(body) {
+        --toast-width: 240px;
+        --toast-padding: 12px 16px;
+        --toast-font-size: 14px;
+        --toast-background: #2c2c2c;
+        --toast-color: #d4d4d4;
+        --toast-border: 1px solid #404040;
+    }
+</style>
