@@ -2,19 +2,32 @@
     import {onDestroy, onMount} from "svelte";
     import { load } from '@tauri-apps/plugin-store';
     import {invoke} from '@tauri-apps/api/core';
-    import {fade, scale, blur, slide} from 'svelte/transition';
+    import {fade, scale, blur, slide, fly} from 'svelte/transition';
     import {quintOut} from 'svelte/easing';
     import * as editorService from '$lib/editorService';
     import * as fileManager from '$lib/fileManager';
+    import { ContextMenu } from "bits-ui";
     import {setupAppMenu, updateMenuItemStates} from '$lib/menu';
     import {getCurrentWindow} from '@tauri-apps/api/window';
     import {confirm} from '@tauri-apps/plugin-dialog';
     import '../app.css';
     import SearchConsole from "$lib/components/search.svelte";
     import {breadcrumb} from "$lib/state.svelte"
+    import { flip } from 'svelte/animate'
+
 
     import {toast, Toaster} from 'svelte-sonner';
-    import {File, Plus, FilePenLine, Cat, Search, FolderClosedIcon, FolderOpenIcon, ChevronLeft} from 'lucide-svelte';
+    import {
+        File,
+        Plus,
+        FilePenLine,
+        Cat,
+        Search,
+        FolderClosedIcon,
+        FolderOpenIcon,
+        ChevronLeft,
+        FolderPen
+    } from 'lucide-svelte';
 
 
     let editorEL: HTMLElement;
@@ -26,8 +39,10 @@
     let showNewNoteDialog = $state(false);
     let showSearchDialog = $state(false);
     let showRenameDialog = $state(false);
+    let showNewFolderDialog = $state(false);
     let newNoteTitle = $state('');
     let newFileTitle = $state('');
+    let newFolderTitle = $state('');
     let isDeleting = $state(false);
     let unlistenMenu: (() => void) | null = null;
     let currentFolder = $state('');
@@ -37,7 +52,9 @@
 
 
     onMount(async () => {
-
+        const blendy = createBlendy({
+            animation: 'dynamic' // or spring
+        })
 
         try {
             await editorService.initializeEditor(editorEl);
@@ -99,6 +116,9 @@
         switch (action) {
             case 'new':
                 showCreateDialog();
+                break;
+            case 'newFolder':
+                showMkdirDialog();
                 break;
             case 'save':
                 handleSave();
@@ -229,7 +249,7 @@
     async function createNewNote() {
         if (!newNoteTitle.trim()) return;
         const fileName = `${newNoteTitle.trim()}.json`;
-        if (notesList.includes(fileName)) {
+        if (notesList.some(note => note.toLowerCase() === fileName.toLowerCase())) {
             toast.error('A note with that title already exists!');
             return;
         }
@@ -266,7 +286,14 @@
 
     }
 
+    function showMkdirDialog() {
+        newFolderTitle = '';
+        showNewFolderDialog = true;
+    }
 
+    function hideMkdirDialog() {
+        showNewFolderDialog = false;
+    }
 
     function hideCreateDialog() {
         showNewNoteDialog = false;
@@ -290,6 +317,10 @@
         if (event.key === 'Enter') handleRename();
         else if (event.key === 'Escape') hideReDialog();
     }
+    function handleCreateFolderKeyDown(event: KeyboardEvent) {
+        if (event.key === 'Enter') handleNewFolder();
+        else if (event.key === 'Escape') hideMkdirDialog();
+    }
 
 
     function sanitizeInput(input: string): string {
@@ -298,6 +329,19 @@
 
     function getDisplayName(fileName: string): string {
         return fileName.replace('.json', '');
+    }
+
+    function handleNewFolder() {
+        if (!newFolderTitle.trim()) return;
+        const folderNameSanitized = sanitizeInput(newFolderTitle);
+        if (foldersList.some(folder => folder.toLowerCase() === folderNameSanitized.toLowerCase())) {
+            toast.error('A folder with that name already exists!');
+            return;
+        }
+        fileManager.createFolder(folderNameSanitized, currentFolder);
+        toast.success(`'${folderNameSanitized}' created`);
+        hideMkdirDialog();
+        loadNotesList(currentFolder);
     }
 
     async function navigateToFolder(targetFolderPath: string) {
@@ -334,13 +378,16 @@
     style: 'font-size: 14px; padding: 12px 16px; width: 240px;',
     class: 'my-toast-class',
 }} />
+<div  data-tauri-drag-region class="absolute top left-0 right-0 h-7 bg-gradient-to-t from-transparent to-[#202020] "></div>
 
 <div class="flex bg-[#191919] h-screen overflow-hidden pt-5">
+
+
     <div class="flex-shrink-0 pl-3 top-4 bottom-4 left-4 w-60 rounded-xl py-4 sidebar transition-all duration-200 ease-in-out"
          class:w-19={!isSidebarVisible}
          class:w-60={isSidebarVisible}>
         <div class="h-full  bg-gradient-to-b from-[#202020] to-[#170d1f]  rounded-xl p-3 relative flex flex-col">
-            <div class="flex-1 overflow-y-auto scrollbar-hide">
+            <div class="flex-1 overflow-y-auto scrollbar-hide relative">
                 {#key currentFolder}
                 <section in:scale={{ duration: 200, delay: 100 }}
                          out:blur={{ duration: 100 }}>
@@ -359,7 +406,7 @@
                             </button>
                             {/if}
 
-                        {#each foldersList as folder}
+                        {#each foldersList as folder (folder)}
                             <button
                                     class="flex items-center gap-2 hover:bg-[#2c2c2c]  stagger-item transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
 
@@ -368,6 +415,7 @@
                                     onclick={() => openFolder(folder)}
                                     onkeydown={(e) => handleKeyDown(e, () => openFolder(folder))}
                                     type="button"
+                                    animate:flip={{ duration: 300 }}
                             >
                                 {#if currentFolder === folder}
                                     <FolderOpenIcon size={16} class="shrink-0"/>
@@ -379,7 +427,7 @@
                                 <span class="truncate">{getDisplayName(folder)}</span>
                             </button>
                         {/each}
-                        {#each notesList as note}
+                        {#each notesList as note (note)}
                             <button
                                     class="flex items-center gap-2 hover:bg-[#2c2c2c] stagger-item  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
 
@@ -388,6 +436,7 @@
                                     onclick={() => {openNote(note); handleSecretSave()}}
                                     onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
                                     type="button"
+                                    animate:flip={{ duration: 300 }}
                             >
                                 {#if currentFile === getFullFilePath(note, currentFolder)}
                                     <FilePenLine size={16} class="shrink-0"/>
@@ -403,30 +452,47 @@
 
 
                     </ul>
-
+                    <div
+                            class="flex items-center gap-2 stagger-item  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis ">
+                        <span class="truncate"> </span>
+                    </div>
                 </section>
                 {/key}
 
             </div>
+            <div class="absolute bottom-13 left-0 right-0 h-16 bg-gradient-to-t from-[#170d1f] to-transparent pointer-events-none"></div>
             <button
-                    class="flex bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
+                    class="flex bottom-3  bg-white/20  items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-2 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
                     onclick={()=>showSearch()}
                     type="button">
 
-                <Search class="shrink-0" size={20}/>
+                <Search class="shrink-0 justify-center" size={20}/>
                 <span class="truncate">search</span>
             </button>
+            <!--
+            <div class="flex-row flex">
             <button
-                    class="flex  bottom-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
+                    class="flex  bottom-3 w-max items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl  font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
                     onclick={()=>showCreateDialog()}
                     type="button">
 
-                <Plus class="shrink-0" size={20}/>
-                <span class="truncate">add</span>
+                <FilePenLine class="shrink-0" size={20}/>
+                <span class="truncate">note</span>
             </button>
+                <button
+                        class="flex  bottom-3 w-max items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl  font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
+                        onclick={()=>showMkdirDialog()}
+                        type="button">
 
+                    <FolderPen class="shrink-0" size={20}/>
+                    <span class="truncate">folder</span>
+                </button>
+            </div>
+            -->
         </div>
+
     </div>
+
 
     <div class="flex flex-col flex-1 min-w-0 transition-all duration-200 ease-in-out">
         <div class="relative flex-1">
@@ -449,12 +515,6 @@
             >
                 <div class="mx-auto pl-8 w-full h-full flex flex-col items-center justify-center text-center">
                     <Cat class="text-[#9b9b9b]" size={50}/>
-                    <h1 class="font-[vr] text-[#d4d4d4]">Autosave is disabled (switching to other notes will save your current note)</h1>
-                    <h1 class="font-[vr] text-[#9b9b9b]">CMD + S to save</h1>
-                    <h1 class="font-[vr] text-[#9b9b9b]">CMD + N for a new file</h1>
-                    <h1 class="font-[vr] text-[#9b9b9b]">CMD + L to delete a file</h1>
-                    <h1 class="font-[vr] text-[#9b9b9b]">CMD + . to toggle sidebar</h1>
-                    <h1 class="font-[vr] text-[#9b9b9b]">CMD + K to search</h1>
                 </div>
             </div>
 
@@ -528,6 +588,41 @@
                         disabled={!newFileTitle.trim()}
                 >
                     Rename
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+{#if showNewFolderDialog}
+    <div class="z-50 fixed inset-0 flex justify-center items-center bg-black/80 transition" in:fade={{ duration: 200 }}
+         out:fade={{ duration: 150 }}>
+        <div class="bg-[#2c2c2c] shadow-xl p-6 rounded-2xl w-96"
+             in:scale={{ duration: 300, start: 0.95, opacity: 0.5, easing: quintOut }}
+             out:scale={{ duration: 200, start: 0.95, opacity: 0 }}>
+            <h3 class="mb-4 font-semibold font-[vr] text-[#ffffff] text-lg">New Folder</h3>
+            <input
+                    type="text"
+                    placeholder="Enter note title..."
+                    class="mb-4 p-3 text-[#ffffff] font-[vr] rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-300 w-full"
+                    bind:value={newFolderTitle}
+                    oninput={(e) => newFolderTitle = sanitizeInput(e.currentTarget.value)}
+                    onkeydown={handleCreateFolderKeyDown}
+                    autofocus
+            />
+            <div class="flex justify-end gap-2">
+                <button
+                        class="bg-gray-200 hover:bg-gray-300 font-[vr] px-4 py-2 rounded-xl text-gray-400 transition-colors"
+                        onclick={hideMkdirDialog}
+                >
+                    Cancel
+                </button>
+                <button
+                        class="bg-violet-300 hover:bg-violet-400 font-[vr] disabled:bg-gray-300 px-4 py-2 rounded-xl text-white transition-colors"
+                        onclick={handleNewFolder}
+                        disabled={!newFolderTitle.trim()}
+                >
+                    Create
                 </button>
             </div>
         </div>

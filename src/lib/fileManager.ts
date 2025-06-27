@@ -100,6 +100,25 @@ export async function writeFile(fileName: string, baseFolder: string, data: Outp
     }
 }
 
+export async function createFolder(folderName: string, baseFolder: string): Promise<void> {
+    try {
+        const path = `${FOLDER_NAME}/${baseFolder}/${folderName}`;
+        await mkdir(path, { baseDir: BaseDirectory.AppData, recursive: true });
+        console.log(`Successfully created folder ${path}`);
+    } catch (error) {
+        console.error('Error creating folder:', error);
+    }
+}
+
+export async function deleteFolder(folderName: string, baseFolder: string): Promise<void> {
+    try {
+        const path = `${FOLDER_NAME}/${baseFolder}/${folderName}`;
+        await remove(path, FILE_OPTIONS);
+        console.log(`Successfully deleted folder ${path}`);
+    } catch (error) {
+        console.error('Error deleting folder:', error);
+    }
+}
 export async function readFile(fileName:string, baseFolder: string): Promise<OutputData | null> {
     try {
         const path = `${FOLDER_NAME}/${baseFolder}/${fileName}`;

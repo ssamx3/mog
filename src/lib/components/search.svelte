@@ -7,7 +7,7 @@
     import {quintOut} from "svelte/easing";
     import {File, FilePenLine} from "lucide-svelte";
     import * as editorService from "$lib/editorService";
-    import {breadcrumb, setBreadcrumb} from "$lib/state.svelte"
+    import { setBreadcrumb} from "$lib/state.svelte"
     import { loadNotesList } from '$lib/notes.svelte';
 
     let searchField = $state('');
@@ -117,11 +117,13 @@
                     No notes found for "{searchField}"
                 </div>
             {:else if searchList.length > 0}
-                <ul class="box flex-column flex-wrap scrollbar-hide max-h-60 overflow-y-auto">
+                <ul class="box flex-column flex-wrap scrollbar-hide max-h-60 overflow-y-auto ">
                     {#each searchList as note, index}
+                        <div class="pb-1">
                         <button
-                                class="flex items-center justify-between gap-2 hover:bg-[#3c3c3c] transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left"
+                                class="flex items-center justify-between gap-6  hover:bg-[#3c3c3c]  transition-all ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left"
                                 class:bg-[#3c3c3c]={selectedIndex === index}
+                                class:font-bold={selectedIndex === index}
                                 onclick={() => openNote(note)}
                                 type="button"
                         >
@@ -137,6 +139,7 @@
                                 {note.path || 'Home'}
                             </span>
                         </button>
+                        </div>
                     {/each}
                 </ul>
             {:else if !searchField}

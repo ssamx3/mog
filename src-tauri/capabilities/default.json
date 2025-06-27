@@ -17,6 +17,7 @@
     "fs:allow-watch",
     "fs:read-dirs",
     "fs:scope-appdata",
+    "core:window:allow-start-dragging",
     {
       "identifier": "fs:scope",
       "allow": [
