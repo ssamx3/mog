@@ -1,33 +1,26 @@
 <script lang="ts">
     import {onDestroy, onMount} from "svelte";
-    import { load } from '@tauri-apps/plugin-store';
+
+    import {load} from '@tauri-apps/plugin-store';
     import {invoke} from '@tauri-apps/api/core';
-    import {fade, scale, blur, slide, fly} from 'svelte/transition';
-    import {quintOut} from 'svelte/easing';
+    import {blur} from 'svelte/transition';
     import * as editorService from '$lib/editorService';
     import * as fileManager from '$lib/fileManager';
-    import { ContextMenu } from "bits-ui";
     import {setupAppMenu, updateMenuItemStates} from '$lib/menu';
     import {getCurrentWindow} from '@tauri-apps/api/window';
     import {confirm} from '@tauri-apps/plugin-dialog';
     import '../app.css';
-    import SearchConsole from "$lib/components/search.svelte";
     import {breadcrumb} from "$lib/state.svelte"
-    import { flip } from 'svelte/animate'
+    import {flip} from 'svelte/animate'
+    import { fade, scale } from 'svelte/transition';
+    import { quintOut } from 'svelte/easing';
+    import { FilePenLine, File, Search, Cat } from 'lucide-svelte';
+    import SearchConsole from '$lib/components/search.svelte';
 
 
     import {toast, Toaster} from 'svelte-sonner';
-    import {
-        File,
-        Plus,
-        FilePenLine,
-        Cat,
-        Search,
-        FolderClosedIcon,
-        FolderOpenIcon,
-        ChevronLeft,
-        FolderPen
-    } from 'lucide-svelte';
+    import {ChevronLeft, FolderClosedIcon, FolderOpenIcon} from 'lucide-svelte';
+    import {foldersList, loadNotesList, notesList} from '$lib/notes.svelte';
 
 
     let editorEL: HTMLElement;
@@ -35,7 +28,7 @@
     let editorEl: HTMLElement;
     let isSidebarVisible = $state(true);
     let currentFile = $state<string | null>(null);
-    import { loadNotesList, notesList, foldersList } from '$lib/notes.svelte';
+
     let showNewNoteDialog = $state(false);
     let showSearchDialog = $state(false);
     let showRenameDialog = $state(false);
@@ -52,9 +45,6 @@
 
 
     onMount(async () => {
-        const blendy = createBlendy({
-            animation: 'dynamic' // or spring
-        })
 
         try {
             await editorService.initializeEditor(editorEl);
@@ -74,13 +64,12 @@
         }
 
         await fileManager.checkFolderExists()
-        const store = await load('store.json', { autoSave: false });
+        const store = await load('store.json', {autoSave: false});
         const val = await store.get<{ value: number }>('doneOnboarding');
         if (val != 1) {
             showOnboarding();
             await store.set('doneOnboarding', 1);
         }
-
 
 
     });
@@ -100,7 +89,6 @@
             position: 'top-right'
         })
     }
-
 
 
     function getFullFilePath(fileName: string, folder: string): string {
@@ -144,8 +132,6 @@
     }
 
 
-   
-
     async function handleSave(): Promise<void> {
         if (!currentFile) return;
         const outputData = await editorService.save();
@@ -167,12 +153,13 @@
             lastSavedData = outputData;
         }
     }
+
     async function handleRename(): Promise<void> {
         if (!currentFile) return;
         const fileName = getFileName(currentFile);
         const newFileName = newFileTitle.trim().concat('.json');
 
-        if (notesList.some(file => file.toUpperCase() === newFileName.toUpperCase())){
+        if (notesList.some(file => file.toUpperCase() === newFileName.toUpperCase())) {
             newFileTitle = '';
             toast.error('This name is already in use!');
             return;
@@ -224,6 +211,13 @@
         }
     }
 
+    function handleMoveNote(note: string, folder: string) {
+        const fileName = getFileName(note);
+        fileManager.moveFile(fileName, folder,  currentFolder);
+        loadNotesList(currentFolder);
+        toast.info(`'${getDisplayName(fileName)}' moved`);
+    }
+
     function openFolder(folderName: string): void {
         editorService.changePh('');
         currentFile = null;
@@ -273,6 +267,7 @@
         showRenameDialog = true;
         newFileTitle = '';
     }
+
     function hideReDialog() {
         showRenameDialog = false;
         newFileTitle = '';
@@ -282,6 +277,7 @@
 
         showSearchDialog = true;
     }
+
     function getBreadCrumbOfNewFile() {
 
     }
@@ -317,10 +313,13 @@
         if (event.key === 'Enter') handleRename();
         else if (event.key === 'Escape') hideReDialog();
     }
+
     function handleCreateFolderKeyDown(event: KeyboardEvent) {
         if (event.key === 'Enter') handleNewFolder();
         else if (event.key === 'Escape') hideMkdirDialog();
     }
+
+
 
 
     function sanitizeInput(input: string): string {
@@ -371,14 +370,14 @@
     }
 
 
-
 </script>
 
 <Toaster duration={1000} position="top-right" richColors toastOptions={{
     style: 'font-size: 14px; padding: 12px 16px; width: 240px;',
     class: 'my-toast-class',
-}} />
-<div  data-tauri-drag-region class="absolute top left-0 right-0 h-7 bg-gradient-to-t from-transparent to-[#202020] "></div>
+}}/>
+<div class="absolute top left-0 right-0 h-7 bg-gradient-to-t from-transparent to-[#202020] "
+     data-tauri-drag-region></div>
 
 <div class="flex bg-[#191919] h-screen overflow-hidden pt-5">
 
@@ -389,74 +388,73 @@
         <div class="h-full  bg-gradient-to-b from-[#202020] to-[#170d1f]  rounded-xl p-3 relative flex flex-col">
             <div class="flex-1 overflow-y-auto scrollbar-hide relative">
                 {#key currentFolder}
-                <section in:scale={{ duration: 200, delay: 100 }}
-                         out:blur={{ duration: 100 }}>
+                    <section in:scale={{ duration: 200, delay: 100 }}
+                             out:blur={{ duration: 100 }}>
 
 
-                    <ul class="box flex-column flex-wrap scrollbar-hide" >
+                        <ul class="box flex-column flex-wrap scrollbar-hide">
 
-                        {#if breadcrumb.length !== 0}
-                            <button
-                                    class="flex top-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
-                                    onclick={()=>goBack()}
-                                    type="button">
+                            {#if breadcrumb.length !== 0}
+                                <button
+                                        class="flex top-3 items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
+                                        onclick={()=>goBack()}
+                                        type="button">
 
-                                <ChevronLeft class="shrink-0" size={20}/>
-                                <span class="truncate">{currentFolder}</span>
-                            </button>
+                                    <ChevronLeft class="shrink-0" size={20}/>
+                                    <span class="truncate">{currentFolder}</span>
+                                </button>
                             {/if}
 
-                        {#each foldersList as folder (folder)}
-                            <button
-                                    class="flex items-center gap-2 hover:bg-[#2c2c2c]  stagger-item transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
+                            {#each foldersList as folder (folder)}
+                                <button
+                                        class="flex items-center gap-2 hover:bg-[#2c2c2c]  stagger-item transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
 
-                                    class:font-black={currentFolder === folder}
-                                    class:scale-102={currentFolder === folder}
-                                    onclick={() => openFolder(folder)}
-                                    onkeydown={(e) => handleKeyDown(e, () => openFolder(folder))}
-                                    type="button"
-                                    animate:flip={{ duration: 300 }}
-                            >
-                                {#if currentFolder === folder}
-                                    <FolderOpenIcon size={16} class="shrink-0"/>
-                                {/if}
+                                        class:font-black={currentFolder === folder}
+                                        class:scale-102={currentFolder === folder}
+                                        onclick={() => openFolder(folder)}
+                                        onkeydown={(e) => handleKeyDown(e, () => openFolder(folder))}
+                                        type="button"
+                                        animate:flip={{ duration: 300 }}>
 
-                                {#if currentFolder !== folder}
-                                    <FolderClosedIcon size={16} class="shrink-0"/>
-                                {/if}
-                                <span class="truncate">{getDisplayName(folder)}</span>
-                            </button>
-                        {/each}
-                        {#each notesList as note (note)}
-                            <button
-                                    class="flex items-center gap-2 hover:bg-[#2c2c2c] stagger-item  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
+                                    {#if currentFolder === folder}
+                                        <FolderOpenIcon size={16} class="shrink-0"/>
+                                    {/if}
 
-                                    class:font-black={currentFile === getFullFilePath(note, currentFolder)}
-                                    class:scale-102={currentFile === getFullFilePath(note, currentFolder)}
-                                    onclick={() => {openNote(note); handleSecretSave()}}
-                                    onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
-                                    type="button"
-                                    animate:flip={{ duration: 300 }}
-                            >
-                                {#if currentFile === getFullFilePath(note, currentFolder)}
-                                    <FilePenLine size={16} class="shrink-0"/>
-                                {/if}
+                                    {#if currentFolder !== folder}
+                                        <FolderClosedIcon size={16} class="shrink-0"/>
+                                    {/if}
+                                    <span class="truncate">{getDisplayName(folder)}</span>
+                                </button>
+                            {/each}
+                            {#each notesList as note (note)}
+                                <button
+                                        class="flex items-center gap-2 hover:bg-[#2c2c2c] stagger-item  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
 
-                                {#if currentFile !== getFullFilePath(note, currentFolder)}
-                                    <File size={16} class="shrink-0"/>
-                                {/if}
-                                <span class="truncate">{getDisplayName(note)}</span>
-                            </button>
-                        {/each}
+                                        class:font-black={currentFile === getFullFilePath(note, currentFolder)}
+                                        class:scale-102={currentFile === getFullFilePath(note, currentFolder)}
+                                        onclick={() => {openNote(note); handleSecretSave()}}
+                                        onkeydown={(e) => handleKeyDown(e, () => openNote(note))}
+                                        type="button"
+                                        animate:flip={{ duration: 300 }}
+                                >
+                                    {#if currentFile === getFullFilePath(note, currentFolder)}
+                                        <FilePenLine size={16} class="shrink-0"/>
+                                    {/if}
+
+                                    {#if currentFile !== getFullFilePath(note, currentFolder)}
+                                        <File size={16} class="shrink-0"/>
+                                    {/if}
+                                    <span class="truncate">{getDisplayName(note)}</span>
+                                </button>
+                            {/each}
 
 
-
-                    </ul>
-                    <div
-                            class="flex items-center gap-2 stagger-item  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis ">
-                        <span class="truncate"> </span>
-                    </div>
-                </section>
+                        </ul>
+                        <div
+                                class="flex items-center gap-2 stagger-item  transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis ">
+                            <span class="truncate"> </span>
+                        </div>
+                    </section>
                 {/key}
 
             </div>
@@ -502,8 +500,8 @@
                  class:pointer-events-auto={currentFile}
                  class:pointer-events-none={!currentFile}>
                 {#if currentFile}
-                <h1 class="font-[vr] font-bold text-2xl pl-23 text-[#d4d4d4]">{getFileName(currentFile.replace('.json', ''))}</h1>
-                    {/if}
+                    <h1 class="font-[vr] font-bold text-2xl pl-23 text-[#d4d4d4]">{getFileName(currentFile.replace('.json', ''))}</h1>
+                {/if}
                 <div bind:this={editorEl} class="mx-auto pl-8 w-full h-full"></div>
             </div>
             <div

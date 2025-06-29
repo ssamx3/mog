@@ -173,6 +173,28 @@ export async function renameFileByCopy(currentFileName: string, newFileName: str
     }
 }
 
+export async function moveFile(currentFilePath: string, folderLocation: string, baseFolder: string): Promise<void> {
+    let oldPath = ''
+    let newPath = ''
+    if (baseFolder === '') {
+         oldPath = `${FOLDER_NAME}/${currentFilePath}`;
+         newPath = `${FOLDER_NAME}/${folderLocation}/${currentFilePath}`;
+    } else {
+         oldPath = `${FOLDER_NAME}/${baseFolder}/${currentFilePath}`;
+         newPath = `${FOLDER_NAME}/${baseFolder}/${folderLocation}/${currentFilePath}`;
+    }
+
+    try {
+        const content = await readTextFile(oldPath, FILE_OPTIONS);
+        await writeTextFile(newPath, content, FILE_OPTIONS);
+        await deleteFile(currentFilePath,baseFolder);
+        console.log(`Successfully moved "${currentFilePath}" to "${folderLocation}"`);
+    } catch (error) {
+        console.error(`Error during move for "${currentFilePath}"`, error);
+        throw error;
+    }
+}
+
 export interface NoteEntry {
     name: string;
     path: string;
