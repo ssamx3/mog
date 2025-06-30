@@ -7,7 +7,7 @@ import {
     BaseDirectory,
     type FileEntry,
     remove,
-    mkdir
+    mkdir, stat
 } from '@tauri-apps/plugin-fs';
 import type { OutputData } from '@editorjs/editorjs';
 

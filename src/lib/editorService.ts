@@ -9,6 +9,7 @@ import AudioPlayer from 'editorjs-audio-player';
 import Table from '@editorjs/table'
 import DragDrop from "editorjs-drag-drop";
 
+
 let editor: EditorJS | null = null;
 let ph: String | null = null;
 
@@ -118,4 +119,9 @@ export async function clearEditor() {
     } catch (error) {
         console.error('Clear failed: ', error);
     }
+}
+
+export async function pauseEditor() {
+    // @ts-ignore
+    await editor.readOnly.toggle()
 }

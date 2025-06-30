@@ -19,7 +19,8 @@
         "backgroundColor": "#191919",
         "maximized": true,
         "titleBarStyle": "Overlay",
-        "decorations": true
+        "decorations": true,
+        "dragDropEnabled": false
 
       }
     ],
