@@ -2,7 +2,7 @@
     import {onDestroy, onMount} from "svelte";
     import {load} from '@tauri-apps/plugin-store';
     import {invoke} from '@tauri-apps/api/core';
-    import {blur, fade, scale} from 'svelte/transition';
+    import {blur, fade, scale, fly} from 'svelte/transition';
     import * as editorService from '$lib/editorService';
     import * as fileManager from '$lib/fileManager';
     import {setupAppMenu, updateMenuItemStates} from '$lib/menu';
@@ -37,6 +37,7 @@
     let unlistenMenu: (() => void) | null = null;
     let currentFolder = $state('');
     let animation
+    let prevFile= $state<string | null>(null);
 
     let lastSavedData = $state<object | null>(null);
 
@@ -280,6 +281,11 @@
     }
 
     function showCreateDialog() {
+        if (showRenameDialog) return;
+        if (showNewFolderDialog) return;
+        if (showSearchDialog) return;
+        prevFile = currentFile;
+        currentFile = null;
         showNewNoteDialog = true;
         editorService.pauseEditor()
         newNoteTitle = '';
@@ -292,6 +298,9 @@
     }
 
     function showReDialog() {
+        if (showNewNoteDialog) return;
+        if (showNewFolderDialog) return;
+        if (showSearchDialog) return;
         showRenameDialog = true;
         newFileTitle = '';
     }
@@ -302,6 +311,9 @@
     }
 
     function showMkdirDialog() {
+        if (showNewNoteDialog) return;
+        if (showRenameDialog) return;
+        if (showSearchDialog) return;
         newFolderTitle = '';
         showNewFolderDialog = true;
     }
@@ -311,6 +323,9 @@
     }
 
     function showSearch() {
+        if (showNewNoteDialog) return;
+        if (showRenameDialog) return;
+        if (showNewFolderDialog) return;
         showSearchDialog = true;
     }
 
@@ -323,13 +338,15 @@
     }
 
     function handleNewNoteKeyDown(event: KeyboardEvent) {
+        // Prevent slash and backslash characters completely
         if (event.key === '/' || event.key === '\\' || event.code === 'Slash') {
             event.preventDefault();
             event.stopPropagation();
             return false;
         }
+
         if (event.key === 'Enter') createNewNote();
-        else if (event.key === 'Escape') hideCreateDialog();
+        else if (event.key === 'Escape') hideCreateDialog(); currentFile = prevFile;
     }
 
     function handleRenameKeyDown(event: KeyboardEvent) {
@@ -361,7 +378,8 @@
 
     function sanitizeInput(input: string): string {
         return input
-            .replace(/[^a-zA-Z0-9\s\-_]/g, '') 
+            .replace(/[^a-zA-Z0-9\s\-_]/g, '') // This already removes slashes, but be explicit
+            .replace(/[\/\\]/g, '') // Explicitly remove forward and back slashes
             .replace(/\.\./g, '')
             .replace(/^\.+/, '')
             .slice(0, 255);
@@ -392,7 +410,7 @@
     <div class="flex-shrink-0 pl-3 top-4 bottom-4 left-4 w-60 rounded-xl py-4 sidebar transition-all duration-200 ease-in-out"
          class:w-19={!isSidebarVisible}
          class:w-60={isSidebarVisible}>
-        <div class="h-full  bg-gradient-to-b from-[#202020] to-[#170d1f]  rounded-xl p-3 relative flex flex-col">
+        <div class="h-full  bg-gradient-to-b from-[#202020] to-[#221E25]  rounded-xl p-3 relative flex flex-col">
             <div class="flex-1 overflow-y-auto scrollbar-hide relative">
                 {#key currentFolder}
                     <section in:scale={{ duration: 200, delay: 100 }}
@@ -417,25 +435,76 @@
 
                                 <div
                                         class:pointer-events-auto={showNewNoteDialog}
-                                        class="flex items-center gap-2 hover:bg-[#2c2c2c]  stagger-item transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
+                                        class="flex items-center gap-2 hover:bg-white/20  stagger-item transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
                                         in:scale={{ duration: 300, start: 0.95, opacity: 0.5, easing: quintOut }}
                                         out:scale={{ duration: 200, start: 0.95, opacity: 0 }}>
 
                                         <FilePenLine size={16} class="shrink-0"/>
+                                    <div>
                                     <input
                                             type="text"
                                             placeholder="Enter note title..."
                                             class=" text-[#ffffff] rounded-md flex-grow w-full focus:outline-none "
                                             bind:value={newNoteTitle}
-                                            oninput={(e) => newNoteTitle = sanitizeInput(e.currentTarget.value)}
-                                            onkeydown={handleNewNoteKeyDown}
+                                            oninput={(e) => {
+                                                e.stopPropagation();
+                                                newNoteTitle = sanitizeInput(e.currentTarget.value);
+                                            }}
+                                            onkeydown={(e) => {
+                                                e.stopPropagation();
+                                                if (e.key === '/' || e.key === '\\' || e.code === 'Slash') {
+                                                    e.preventDefault();
+                                                    return false;
+                                                }
+                                                if (e.key === 'Enter') createNewNote();
+                                                else if (e.key === 'Escape') hideCreateDialog();
+                                            }}
                                             autofocus
                                     />
+                                    </div>
                                 </div>
 
 
 
                             {/if}
+
+                            {#if showNewFolderDialog}
+
+                                <div
+                                        class:pointer-events-auto={showNewFolderDialog}
+                                        class="flex items-center gap-2 hover:bg-[#2c2c2c]  stagger-item transition-all hover:scale-102 ease-in-out duration-200 p-3 rounded-xl w-full font-[vr] text-[#9b9b9b] text-left truncate text-ellipsis "
+                                        in:scale={{ duration: 300, start: 0.95, opacity: 0.5, easing: quintOut }}
+                                        out:scale={{ duration: 200, start: 0.95, opacity: 0 }}>
+
+                                        <FolderOpenIcon size={16} class="shrink-0"/>
+                                    <div>
+                                    <input
+                                            type="text"
+                                            placeholder="Enter folder name..."
+                                            class=" text-[#ffffff] rounded-md flex-grow w-full focus:outline-none "
+                                            bind:value={newFolderTitle}
+                                            oninput={(e) => {
+                                                e.stopPropagation();
+                                                newFolderTitle = sanitizeInput(e.currentTarget.value);
+                                            }}
+                                            onkeydown={(e) => {
+                                                e.stopPropagation();
+                                                if (e.key === '/' || e.key === '\\' || e.code === 'Slash') {
+                                                    e.preventDefault();
+                                                    return false;
+                                                }
+                                                if (e.key === 'Enter') handleNewFolder();
+                                                else if (e.key === 'Escape') hideMkdirDialog();
+                                            }}
+                                            autofocus
+                                    />
+                                    </div>
+                                </div>
+
+
+
+                            {/if}
+
 
                             {#each foldersList as folder (folder)}
                                 <div
@@ -498,7 +567,7 @@
                 {/key}
 
             </div>
-            <div class="absolute bottom-13 left-0 right-0 h-16 bg-gradient-to-t from-[#170d1f] to-transparent pointer-events-none"></div>
+            <div class="absolute bottom-13 left-0 right-0 h-16 bg-gradient-to-t from-[#221E25] to-transparent pointer-events-none"></div>
             <button
                     class="flex bottom-3  bg-white/20  items-center gap-2 transition-all hover:scale-105 ease-in-out duration-200 p-2 rounded-xl w-full font-[vr] hover:text-[#d4d4d4] text-[#9b9b9b] text-left truncate text-ellipsis "
                     onclick={()=>showSearch()}
@@ -599,40 +668,6 @@
     </div>
 {/if}
 
-{#if showNewFolderDialog}
-    <div class="z-50 fixed inset-0 flex justify-center items-center bg-black/80 transition" in:fade={{ duration: 200 }}
-         out:fade={{ duration: 150 }}>
-        <div class="bg-[#2c2c2c] shadow-xl p-6 rounded-2xl w-96"
-             in:scale={{ duration: 300, start: 0.95, opacity: 0.5, easing: quintOut }}
-             out:scale={{ duration: 200, start: 0.95, opacity: 0 }}>
-            <h3 class="mb-4 font-semibold font-[vr] text-[#ffffff] text-lg">New Folder</h3>
-            <input
-                    type="text"
-                    placeholder="Enter note title..."
-                    class="mb-4 p-3 text-[#ffffff] font-[vr] rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-300 w-full"
-                    bind:value={newFolderTitle}
-                    oninput={(e) => newFolderTitle = sanitizeInput(e.currentTarget.value)}
-                    onkeydown={handleCreateFolderKeyDown}
-                    autofocus
-            />
-            <div class="flex justify-end gap-2">
-                <button
-                        class="bg-gray-200 hover:bg-gray-300 font-[vr] px-4 py-2 rounded-xl text-gray-400 transition-colors"
-                        onclick={hideMkdirDialog}
-                >
-                    Cancel
-                </button>
-                <button
-                        class="bg-violet-300 hover:bg-violet-400 font-[vr] disabled:bg-gray-300 px-4 py-2 rounded-xl text-white transition-colors"
-                        onclick={handleNewFolder}
-                        disabled={!newFolderTitle.trim()}
-                >
-                    Create
-                </button>
-            </div>
-        </div>
-    </div>
-{/if}
 
 
 {#if showSearchDialog}
