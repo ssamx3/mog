@@ -9,7 +9,6 @@ import {
     remove,
     mkdir, stat
 } from '@tauri-apps/plugin-fs';
-import { v4 as uuid } from 'uuid';
 import type { OutputData } from '@editorjs/editorjs';
 
 const FILE_OPTIONS = { baseDir: BaseDirectory.AppData };
@@ -222,7 +221,4 @@ export async function listAllNotesRecursively(currentPath: string = ''): Promise
     return allNotes;
 }
 
-export async function saveImage(image: File) {
-    const imageUUID = uuid();
-    
-}
+
