@@ -74,7 +74,9 @@ export async function initializeEditor(holder: HTMLElement): Promise<EditorJS> {
             },
         },
 
-
+        onReady() {
+            new DragDrop(editor);
+        },
         placeholder: ph,
     });
 
